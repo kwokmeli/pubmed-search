@@ -185,59 +185,46 @@ console.log("entered searchIntentHandler");
 	var searchTerm = this.event.request.intent.slots.TOPICS.value;
 	var alexa = this;
 	var subject = searchTerm;
+	var searchURL;
 	var retMax = 15;
 	var articles = [];
 
-	var encodeFirst = new Promise(function (fulfill, reject) {
-		searchTerm = encodeURIComponent(searchTerm).replace(/'/g,"%27").replace(/"/g,"%22");
-		fulfill();
-	});
 
-	encodeFirst.then(function () {
-	  var searchURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=" + retMax + "&term=" + searchTerm;
+	searchTerm = encodeURIComponent(searchTerm).replace(/'/g,"%27").replace(/"/g,"%22");
+	searchURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=" + retMax + "&term=" + searchTerm;
 console.log("general search url: " + searchURL);
-	  https.get(searchURL, function (res) {
-	    res.setEncoding("utf8");
-	    let body = "";
-	    res.on("data", function (data) {
-	      body += data;
-	    });
-
-	    res.on("end", function () {
-	      body = JSON.parse(body);
-
-	      for (var i = 0; i < body.esearchresult.idlist.length; i++) {
-	        articles.push(body.esearchresult.idlist[i]);
-	      }
-
-				var searchFirst = new Promise(function (fulfill, reject) {
-console.log("SEARCH FIRST PROMISE CREATED");
-					// Select random article
-					var articleNumber = articles[Math.floor(Math.random() * articles.length)];
-					printArticle(articleNumber);
-					fulfill();
-				});
-
-				searchFirst.then(function () {
-console.log("SEARCH FIRST PROMISE FULFILLED");
-					var text = "";
-
-					for (var i = 0; i < publicationsArray[0].length; i++) {
-						text += publicationsArray[0][i] + " ";
-					}
-console.log(text);
-					alexa.emit(":ask", text);
-				});
-	    });
+	https.get(searchURL, function (res) {
+		res.setEncoding("utf8");
+	  let body = "";
+	  res.on("data", function (data) {
+	    body += data;
 	  });
+
+	  res.on("end", function () {
+	    body = JSON.parse(body);
+      for (var i = 0; i < body.esearchresult.idlist.length; i++) {
+	      articles.push(body.esearchresult.idlist[i]);
+     	}
+
+			// Select random article
+			var articleNumber = articles[Math.floor(Math.random() * articles.length)];
+			printArticle(articleNumber, function () {
+				var text = "";
+				for (var i = 0; i < publicationsArray[0].length; i++) {
+					text += publicationsArray[0][i] + " ";
+				}
+
+		console.log(text);
+				alexa.emit(":ask", text);
+			});
+		});
 	});
 	//this.attributes.pubMedID = "true";
-
 }
 
 
 
-function printArticle(articleNumber) {
+function printArticle(articleNumber, callback) {
 console.log("went into printArticle");
 	// Retrieve article using Pub Med ID
 	var abstractURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=" + articleNumber;
@@ -252,13 +239,15 @@ console.log("abstractURL: " + abstractURL);
 		res.on("end", function () {
 			var parser = new xml2js.Parser();
 			parser.parseString(body, function(err, result) {
-				extractDetails(result, articleNumber);
+				extractDetails(result, articleNumber, function () {
+					callback();
+				});
 			});
 		});
 	});
 }
 
-function extractDetails(result, article) {
+function extractDetails(result, article, callback) {
 console.log("went into extractDetails");
 	var journalTitle, articleTitle;
 	var volume, issue;
@@ -392,6 +381,7 @@ console.log("went into extractDetails");
 	// }
 
 	publicationsArray.push(articleInformation);
+	callback();
 }
 
 
