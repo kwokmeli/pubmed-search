@@ -4,6 +4,7 @@ const xml2js = require("xml2js");
 const https = require("https");
 
 const NA = "N/A";
+const retMax = 10;
 
 // App ID for mkwok
 var APP_ID = "amzn1.ask.skill.6c3b5cbf-71ab-470b-b440-adcc95f0e70d";
@@ -33,8 +34,6 @@ var EXIT_SKILL_MESSAGE = "Ok.";
 // =====================================================================================================
 // ------------------------------ Section 2. Skill Code - Intent Handlers  -----------------------------
 // =====================================================================================================
-// CAUTION: Editing anything below this line might break your skill.
-//======================================================================================================
 
 var states = {
 	SEARCHMODE: "_SEARCHMODE",
@@ -161,15 +160,12 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 	}
 });
 
-// ------------------------- END of Intent Handlers  ---------------------------------
-
 var publicationsArray = [];
 
 function searchIntentHandler() {
 	// Reset publicationsArray each time a new search is called
-	// publicationsArray.splice(0, publicationsArray.length);
+	publicationsArray.splice(0, publicationsArray.length);
 
-console.log("entered searchIntentHandler");
 // // IMPORTANT STUFF
 // var searchQuery = this.event.request.intent.slots[canSearch].value;
 // //saving lastSearch results to the current session
@@ -186,13 +182,13 @@ console.log("entered searchIntentHandler");
 	var alexa = this;
 	var subject = searchTerm;
 	var searchURL;
-	var retMax = 15;
 	var articles = [];
-
+	var j = 0;
+	var speech = "";
 
 	searchTerm = encodeURIComponent(searchTerm).replace(/'/g,"%27").replace(/"/g,"%22");
 	searchURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=" + retMax + "&term=" + searchTerm;
-console.log("general search url: " + searchURL);
+
 	https.get(searchURL, function (res) {
 		res.setEncoding("utf8");
 	  let body = "";
@@ -206,29 +202,46 @@ console.log("general search url: " + searchURL);
 	      articles.push(body.esearchresult.idlist[i]);
      	}
 
-			// Select random article
-			var articleNumber = articles[Math.floor(Math.random() * articles.length)];
-			printArticle(articleNumber, function () {
-				var text = "";
-				for (var i = 0; i < publicationsArray[0].length; i++) {
-					text += publicationsArray[0][i] + " ";
+			storeArticles(readArticleTitles);
+
+			// Store all articles
+			function storeArticles(callback) {
+				getArticle(articles[j], function () {
+					if (j != articles.length - 1) {
+						j++;
+						storeArticles(readArticleTitles);
+					} else {
+						// Execute readArticleTitles()
+						callback();
+					}
+				});
+			}
+
+			function readArticleTitles() {
+				speech += "Here are the top " + articles.length + " articles that match your search query - ";
+
+				for (var i = 0; i < articles.length; i++) {
+					speech += "Article " + (i + 1) + " - " + publicationsArray[i][0];
+					if (i == articles.length - 2) {
+						speech += " - and ";
+					} else if (i == articles.length - 1) {
+						speech += ". ";
+					} else {
+						speech += " - ";
+					}
 				}
 
-		console.log(text);
-				alexa.emit(":ask", text);
-			});
+				alexa.emit(":ask", speech.replace("\\", ""));
+			}
 		});
 	});
 	//this.attributes.pubMedID = "true";
 }
 
-
-
-function printArticle(articleNumber, callback) {
-console.log("went into printArticle");
+function getArticle(articleNumber, callback) {
 	// Retrieve article using Pub Med ID
 	var abstractURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=" + articleNumber;
-console.log("abstractURL: " + abstractURL);
+
 	https.get(abstractURL, function (res) {
 		res.setEncoding("utf8");
 		let body = "";
@@ -248,7 +261,7 @@ console.log("abstractURL: " + abstractURL);
 }
 
 function extractDetails(result, article, callback) {
-console.log("went into extractDetails");
+console.log("CALLED EXTRACTDETAILS");
 	var journalTitle, articleTitle;
 	var volume, issue;
 	var issn, issnType;
@@ -271,7 +284,8 @@ console.log("went into extractDetails");
 
 	// Retrieve article title if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]) {
-		articleTitle = result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"];
+		articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]).replace("[", "").replace("]", "");
+console.log(articleTitle + " " + typeof articleTitle);
 	} else {
 		articleTitle = NA;
 	}
@@ -358,33 +372,12 @@ console.log("went into extractDetails");
 		}
 	}
 
-	// console.log("Article title: " + articleTitle + "\nJournal title: " + journalTitle + "\nVolume: " + volume + "\nIssue: " + issue +
-	// 						"\nISSN: " + issn + "\nISSN type: " + issnType + "\nPub Med ID: " + article + "\nDate published: " + datePublished + "\nDate received: " + dateReceived +
-	// 						"\nDate revised: " + dateRevised + "\nDate accepted: " + dateAccepted);
-
-	// var authors = "";
-	// for (var i = 0; i < authorsFirst.length; i++) {
-	// 	if (i == authorsFirst.length - 2) {
-	// 		authors += authorsFirst[i] + " " + authorsLast[i] + ", and ";
-	// 	} else if (i == authorsFirst.length - 1) {
-	// 		authors += authorsFirst[i] + " " + authorsLast[i] + ". ";
-	// 	} else {
-	// 		authors += authorsFirst[i] + " " + authorsLast[i] + ", ";
-	// 	}
-	// }
-
 	articleInformation.push(articleTitle, journalTitle, volume, issue, issn, issnType, article, authorsFirst, authorsLast, abstract, datePublished,
 													dateReceived, dateRevised, dateAccepted);
-
-	// for (var i = 0; i < articleInformation.length; i++) {
-	// 	console.log(articleInformation[i]);
-	// }
 
 	publicationsArray.push(articleInformation);
 	callback();
 }
-
-
 
 function tellMeMoreIntentHandler() {
 	this.emit(":ask", "tellMeMoreIntentHandler called");
