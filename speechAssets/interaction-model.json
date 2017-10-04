@@ -40,122 +40,52 @@
       "samples": []
     },
     {
-      "name": "SearchByCityIntent",
+      "name": "SearchIntent",
       "samples": [
-        "who is in {cityName} ",
-        "find me an evangelist in {cityName} ",
-        "find me someone in {cityName} ",
-        "{cityName} ",
-        "{cityName} evangelist"
+        "search for {TOPICS}",
+        "find me articles about {TOPICS}",
+        "find {TOPICS}",
+        "find articles about {TOPICS}",
+        "look for {TOPICS}",
+        "give me articles about {TOPICS}"
       ],
       "slots": [
         {
-          "name": "cityName",
-          "type": "AMAZON.US_CITY",
+          "name": "TOPICS",
+          "type": "TOPICS",
           "samples": []
         }
       ]
     },
     {
-      "name": "SearchByInfoTypeIntent",
+      "name": "SelectIntent",
       "samples": [
-        "{whatPhrase} {firstName} {lastName} {infoType}",
-        "{whatPhrase} {lastName} {infoType}",
-        "{whatPhrase} {firstName}  {infoType} handle",
-        "{whatPhrase} {firstName} {infoType} username"
+        "article {AMAZON_NUMBER}",
+        "{AMAZON_NUMBER}",
+        "number {AMAZON_NUMBER}"
       ],
       "slots": [
         {
-          "name": "firstName",
-          "type": "AMAZON.US_FIRST_NAME",
-          "samples": []
-        },
-        {
-          "name": "lastName",
-          "type": "LAST_NAME",
-          "samples": []
-        },
-        {
-          "name": "infoType",
-          "type": "LIST_OF_INFO_TYPES",
-          "samples": []
-        },
-        {
-          "name": "whatPhrase",
-          "type": "WHAT_PHRASE",
+          "name": "AMAZON_NUMBER",
+          "type": "AMAZON.NUMBER",
           "samples": []
         }
       ]
-    },
-    {
-      "name": "SearchByNameIntent",
-      "samples": [
-        "{firstName}",
-        "{lastName}",
-        "{firstName} {lastName}",
-        "{whoPhrase} {firstName} ",
-        "{whoPhrase} {firstName} {lastName} ",
-        "{whoPhrase} {lastName} ",
-        "{whatPhrase} {firstName} {lastName} {infoType} username",
-        "{whatPhrase} {infoType} for {firstName} ",
-        "{whatPhrase} {firstName} {lastName} {infoType} handle"
-      ],
-      "slots": [
-        {
-          "name": "firstName",
-          "type": "AMAZON.US_FIRST_NAME",
-          "samples": []
-        },
-        {
-          "name": "lastName",
-          "type": "LAST_NAME",
-          "samples": []
-        },
-        {
-          "name": "infoType",
-          "type": "LIST_OF_INFO_TYPES",
-          "samples": []
-        },
-        {
-          "name": "whoPhrase",
-          "type": "WHO_PHRASE",
-          "samples": []
-        },
-        {
-          "name": "whatPhrase",
-          "type": "WHAT_PHRASE",
-          "samples": []
-        }
-      ]
-    },
-    {
-      "name": "TellMeMoreIntent",
-      "samples": [
-        "contact info",
-        "tell me more",
-        "more details"
-      ],
-      "slots": []
     },
     {
       "name": "TellMeThisIntent",
       "samples": [
-        "{whatPhrase} her {infoType} handle",
-        "{whatPhrase} her {infoType} username",
-        "{whatPhrase} {infoType} username",
-        "{whatPhrase} his {infoType} handle",
-        "tell me his {infoType} username",
-        "tell me her {infoType} handle"
+        "{WHAT_PHRASE} {INFO_TYPE}"
       ],
       "slots": [
         {
-          "name": "infoType",
-          "type": "LIST_OF_INFO_TYPES",
+          "name": "WHAT_PHRASE",
+          "type": "WHAT_PHRASE",
           "samples": []
         },
         {
-          "name": "whatPhrase",
-          "type": "WHAT_PHRASE",
+          "name": "INFO_TYPE",
+          "type": "INFO_TYPE",
           "samples": []
         }
       ]
@@ -163,126 +93,350 @@
   ],
   "types": [
     {
-      "name": "AMAZON.US_FIRST_NAME",
+      "name": "INFO_TYPE",
       "values": [
         {
+          "id": null,
           "name": {
-            "value": "paul"
+            "value": "abstract",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "jeff"
+            "value": "volume",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "memo"
+            "value": "issue",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "rob"
+            "value": "i. s. s. n.",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "dave"
+            "value": "author",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "amit"
+            "value": "date",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "liz"
+            "value": "title",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "dean"
+            "value": "pub med i. d.",
+            "synonyms": []
           }
         }
       ]
     },
     {
-      "name": "LAST_NAME",
+      "name": "TOPICS",
       "values": [
         {
+          "id": null,
           "name": {
-            "value": "cutsinger"
+            "value": "a. 1. c. test",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "blankenburg"
+            "value": "ace inhibitors",
+            "synonyms": [
+              "angiotensin-converting enzyme inhibitors"
+            ]
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "doring"
+            "value": "a. d. m. e.",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "mccauley"
+            "value": "a. l. l.",
+            "synonyms": [
+              "acute lymphoblastic leukemia",
+              "childhood acute lymphoblastic leukemia",
+              "lymphoblastic leukemia",
+              "childhood lymphoblastic leukemia"
+            ]
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "isbitsky"
+            "value": "a. m. l.",
+            "synonyms": [
+              "acute myeloid leukemia",
+              "childhood acute myeloid leukemia",
+              "myeloid leukemia",
+              "childhood myeloid leukemia"
+            ]
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "palermo"
+            "value": "abdomen",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "jotwani"
+            "value": "abdominal adhesions",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "myers"
+            "value": "abdominal aorta",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "bryen"
+            "value": "abdominal aortic aneurysm",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "gilbert"
-          }
-        }
-      ]
-    },
-    {
-      "name": "LIST_OF_INFO_TYPES",
-      "values": [
-        {
-          "name": {
-            "value": "twitter"
+            "value": "abdominal hysterectomy",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "git hub"
+            "value": "abdominal pain",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "linkedin"
+            "value": "abdominal surgery",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "github"
+            "value": "abdominal ultrasound",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "ablation",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "abrasion",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "abscess",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "abutment",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "accommodative lens",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "achilles tendinitis",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "achilles tendon",
+            "synonyms": [
+              "calcaneal tendon"
+            ]
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "achilles tendon injuries",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acne",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acne cysts",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acne lesions",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acne nodules",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acne scars",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acoustic",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acoustic neuroma",
+            "synonyms": [
+              "vestibular schwannoma"
+            ]
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acquired apraxia of speech",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acquired cystic kidney disease",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acromegaly",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "actinic keratosis",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "action potential",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acute",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acute bacterial prostatitis",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acute otitis media",
+            "synonyms": [
+              "acute middle ear infection",
+              "middle ear infection",
+              "ear infection"
+            ]
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "acute pancreatitis",
+            "synonyms": [
+              "pancreatitis",
+              "pancreatitis prevention",
+              "acute pancreatitis prevention"
+            ]
           }
         }
       ]
@@ -291,23 +445,38 @@
       "name": "WHAT_PHRASE",
       "values": [
         {
+          "id": null,
           "name": {
-            "value": "what is"
+            "value": "what is",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "what's"
+            "value": "what's",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "give me"
+            "value": "give me",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "tell me"
+            "value": "tell me",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "what",
+            "synonyms": []
           }
         }
       ]
@@ -316,13 +485,24 @@
       "name": "WHO_PHRASE",
       "values": [
         {
+          "id": null,
           "name": {
-            "value": "find"
+            "value": "find",
+            "synonyms": []
           }
         },
         {
+          "id": null,
           "name": {
-            "value": "who is"
+            "value": "who is",
+            "synonyms": []
+          }
+        },
+        {
+          "id": null,
+          "name": {
+            "value": "who",
+            "synonyms": []
           }
         }
       ]
