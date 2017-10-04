@@ -90,8 +90,8 @@ var startSearchHandlers = Alexa.CreateStateHandler(states.SEARCHMODE, {
 	},
 	"AMAZON.RepeatIntent": function() {
 		var output;
-		if (this.attributes.lastSearch) {
-			output = this.attributes.lastSearch.lastSpeech;
+		if (this.attributes.lastSpeech) {
+			output = this.attributes.lastSpeech;
 		} else {
 			output = getGenericHelpMessage();
 		}
@@ -144,7 +144,7 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 		tellMeMoreIntentHandler.call(this);
 	},
 	"AMAZON.RepeatIntent": function() {
-		this.emit(":ask",this.attributes.lastSearch.lastSpeech, this.attributes.lastSearch.lastSpeech);
+		this.emit(":ask",this.attributes.lastSpeech, this.attributes.lastSpeech);
 	},
 	"AMAZON.StartOverIntent": function() {
 		this.handler.state = states.SEARCHMODE;
@@ -160,6 +160,21 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 	}
 });
 
+// Storage order within publicationsArray:
+// Index 0: Article title (string)
+// Index 1: Journal title (string)
+// Index 2: Volume (string)
+// Index 3: Issue (string)
+// Index 4: ISSN Number (string)
+// Index 5: ISSN Type (string)
+// Index 6: PubMed ID (string)
+// Index 7: Author first names (array)
+// Index 8: Author last names (array)
+// Index 9: Abstract (string)
+// Index 10: Date published (array, YYYY/MM/DD)
+// Index 11: Date received (array, YYYY/MM/DD)
+// Index 12: Date revised (array, YYYY/MM/DD)
+// Index 13: Date accepted (array, YYYY/NN/DD)
 var publicationsArray = [];
 
 function searchIntentHandler() {
@@ -202,44 +217,58 @@ function searchIntentHandler() {
 	      articles.push(body.esearchresult.idlist[i]);
      	}
 
-			storeArticles(readArticleTitles);
+			if (articles.length === 0) {
+				// No articles were found
+				speech += "I'm sorry. I couldn't find any articles related to your requested search topic of " + subject + ". Please search again.";
+				alexa.emit(":ask", speech);
+			} else {
+				storeArticles(readArticleTitles);
 
-			// Store all articles
-			function storeArticles(callback) {
-				getArticle(articles[j], function () {
-					if (j != articles.length - 1) {
-						j++;
-						storeArticles(readArticleTitles);
-					} else {
-						// Execute readArticleTitles()
-						callback();
-					}
-				});
-			}
-
-			function readArticleTitles() {
-				speech += "Here are the top " + articles.length + " articles that match your search query - ";
-
-				for (var i = 0; i < articles.length; i++) {
-					speech += "Article " + (i + 1) + " - " + publicationsArray[i][0];
-					if (i == articles.length - 2) {
-						speech += " - and ";
-					} else if (i == articles.length - 1) {
-						speech += ". ";
-					} else {
-						speech += " - ";
-					}
+				// Store all articles and their information
+				function storeArticles(callback) {
+					getArticle(articles[j], function () {
+						if (j != articles.length - 1) {
+							j++;
+							storeArticles(readArticleTitles);
+						} else {
+							// Execute readArticleTitles()
+							callback();
+						}
+					});
 				}
 
-				alexa.emit(":ask", speech.replace("\\", ""));
+				function readArticleTitles() {
+					// Store information of all articles in session attributes
+					alexa.attributes.publicationsArray = publicationsArray;
+					// Change state to DESCRIPTION since articles have been found
+					alexa.handler.state = states.DESCRIPTION;
+
+					speech += "Here are the top " + articles.length + " articles that match your search query of " + subject + " - ";
+
+					for (var i = 0; i < articles.length; i++) {
+						speech += "Article " + (i + 1) + " - " + publicationsArray[i][0];
+						if (i == articles.length - 2) {
+							speech += " - and ";
+						} else if (i == articles.length - 1) {
+							speech += ". ";
+						} else {
+							speech += " - ";
+						}
+					}
+
+					speech += "Which article would you like to learn more about? "
+					// Store last speech so it can be repeated if necessary
+					alexa.attributes.lastSpeech = speech;
+
+					alexa.emit(":ask", speech.replace(/\\/g, "").replace(/\"/g,""));
+				}
 			}
 		});
 	});
-	//this.attributes.pubMedID = "true";
 }
 
 function getArticle(articleNumber, callback) {
-	// Retrieve article using Pub Med ID
+	// Retrieve article using PubMed ID
 	var abstractURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=" + articleNumber;
 
 	https.get(abstractURL, function (res) {
@@ -261,7 +290,6 @@ function getArticle(articleNumber, callback) {
 }
 
 function extractDetails(result, article, callback) {
-console.log("CALLED EXTRACTDETAILS");
 	var journalTitle, articleTitle;
 	var volume, issue;
 	var issn, issnType;
@@ -270,50 +298,51 @@ console.log("CALLED EXTRACTDETAILS");
 	var dateRevised = [];
 	var dateAccepted = [];
 	var abstract = "";
+	var articleInformation = [];
 	var authorsFirst = [];
 	var authorsLast = [];
 	// var authorsAffiliation = [];
-	var articleInformation = [];
 
 	// Retrieve journal title if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]) {
-		journalTitle = result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"];
+		journalTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]).replace(/[\\\"\[\]]/g, "");
 	} else {
 		journalTitle = NA;
 	}
 
 	// Retrieve article title if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]) {
-		articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]).replace("[", "").replace("]", "");
-console.log(articleTitle + " " + typeof articleTitle);
+		articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]).replace(/[\\\"\[\]]/g, "");
 	} else {
 		articleTitle = NA;
 	}
 
 	// Retrieve volume if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]) {
-		volume = result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"];
+		volume = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]).replace(/[\\\"\[\]]/g, "");
+console.log("TYPE OF VOLUME: " + typeof volume);
 	} else {
 		volume = NA;
 	}
 
 	// Retrieve issue if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"]) {
-		issue = result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"];
+		issue = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"]).replace(/[\\\"\[\]]/g, "");
 	} else {
 		issue = NA;
 	}
 
 	// Retrieve ISSN number if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]){
-		issn = result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"];
+		issn = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]).replace(/[\\\"\[\]]/g, "");
+console.log("TYPE OF ISSN NUMBER: " + typeof issn);
 	} else {
 		issn = NA;
 	}
 
 	// Retrieve ISSN type if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"]) {
-		issnType = result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"];
+		issnType = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"]).replace(/[\\\"\[\]]/g, "");
 	} else {
 		issnType = NA;
 	}
@@ -321,26 +350,26 @@ console.log(articleTitle + " " + typeof articleTitle);
 	// All dates are in the form YYYY, MM, DD
 	// Retrieve publication dates if they exist
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"]) {
-		datePublished.push(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Year"],
-											 result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Month"],
-											 result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Day"]);
+		datePublished.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Year"]).replace(/[\\\"\[\]]/g, ""),
+											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Month"]).replace(/[\\\"\[\]]/g, ""),
+											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Day"]).replace(/[\\\"\[\]]/g, ""));
 	}
 
 	// Retrieve dates for when article was received, revised, and accepted, if available
 	for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"].length; i++) {
 		var pubStatus = result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["$"]["PubStatus"].toLowerCase();
 		if (pubStatus === "received") {
-			dateReceived.push(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"],
-												result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"],
-												result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]);
+			dateReceived.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
+												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
+												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
 		} else if (pubStatus === "revised") {
-			dateRevised.push(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"],
-												result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"],
-												result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]);
+			dateRevised.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
+											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
+											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
 		} else if (pubStatus === "accepted") {
-			dateAccepted.push(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"],
-												result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"],
-												result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]);
+			dateAccepted.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
+												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
+												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
 		}
 	}
 
@@ -348,9 +377,9 @@ console.log(articleTitle + " " + typeof articleTitle);
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"]) {
 		for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"].length; i++) {
 			if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"]) {
-				abstract += result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"] + " ";
+				abstract += JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"]).replace(/[\\\"\[\]]/g, "") + " ";
 			} else {
-				abstract += result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i];
+				abstract += JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]).replace(/[\\\"\[\]]/g, "");
 			}
 		}
 	} else {
@@ -361,8 +390,8 @@ console.log(articleTitle + " " + typeof articleTitle);
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"]) {
 		for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"].length; i++) {
 			var aff = [];
-			authorsFirst.push(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]);
-			authorsLast.push(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]);
+			authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]).replace(/[\\\"\[\]]/g, ""));
+			authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]).replace(/[\\\"\[\]]/g, ""));
 
 			// Affiliations include extraneous information
 			// for (var j = 0; j < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["AffiliationInfo"].length; j++) {
@@ -370,6 +399,9 @@ console.log(articleTitle + " " + typeof articleTitle);
 			// }
 			// authorsAffiliation.push(aff);
 		}
+	} else {
+		authorsFirst.push(NA);
+		authorsLast.push(NA);
 	}
 
 	articleInformation.push(articleTitle, journalTitle, volume, issue, issn, issnType, article, authorsFirst, authorsLast, abstract, datePublished,
@@ -405,8 +437,6 @@ exports.handler = function(event, context, callback) {
 // =====================================================================================================
 // ------------------------------------ Section 4. Helper Functions  -----------------------------------
 // =====================================================================================================
-// For more helper functions, visit the Alexa cookbook at https://github.com/alexa/alexa-cookbook
-//======================================================================================================
 function loopThroughArrayOfObjects(arrayOfStrings) {
 	var joinedResult = "";
 	// Looping through the each object in the array
@@ -421,4 +451,15 @@ function sanitizeSearchQuery(searchQuery){
 	searchQuery = searchQuery.replace(/’s/g, "").toLowerCase();
 	searchQuery = searchQuery.replace(/'s/g, "").toLowerCase();
 	return searchQuery;
+}
+
+function spellOut(toSpell) {
+	var arr = toSpell.split("");
+	var str = "";
+
+	for (var i = 0; i < arr.length; i++) {
+		str += arr[i] + " ";
+	}
+
+	return str;
 }
