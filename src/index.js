@@ -11,25 +11,23 @@ var APP_ID = "amzn1.ask.skill.6c3b5cbf-71ab-470b-b440-adcc95f0e70d";
 
 var skillName = "Pub Med Search";
 
-//This is the welcome message for when a user starts the skill without a specific intent.
-var WELCOME_MESSAGE = "Welcome to " + skillName + "To get started, say the name of a topic to search for.";
+// This is the welcome message for when a user starts the skill without a specific intent.
+var WELCOME_MESSAGE = "Welcome to " + skillName + "To get started, search for a topic of interest. If you ever need help, just say - I need help. ";
 
-//This is the message a user will hear when they ask Alexa for help in your skill.
-var HELP_MESSAGE = "I can help you find Pub Med articles.";
+// This is the message a user will hear when they ask Alexa for help in your skill.
+var HELP_MESSAGE = "I can help you find articles from the Pub Med database. ";
 
-//This is the message a user will hear when they begin a new search
-var NEW_SEARCH_MESSAGE = "To start a new search, you can say - find me articles about dentistry.";
+// This is the message a user will hear when they begin a new search
+var NEW_SEARCH_MESSAGE = "To start a new search, you can say - find me articles about dentistry. ";
 
-//This is the message a user will hear when they ask Alexa for help while in the SEARCH state
-var SEARCH_STATE_HELP_MESSAGE = "To search for articles, you can say - find me articles about cancer.";
-
-var DESCRIPTION_STATE_HELP_MESSAGE = "Here are some things you can say: Tell me more, or give me his or her contact info";
+// This is the message a user will hear when they ask Alexa for help while in the SEARCH state
+var SEARCH_STATE_HELP_MESSAGE = "To search for articles, you can say - find me articles about cancer. ";
 
 // This is the message use when the decides to end the search
-var SHUTDOWN_MESSAGE = "Ok.";
+var SHUTDOWN_MESSAGE = "Ok. ";
 
-//This is the message a user will hear when they try to cancel or stop the skill.
-var EXIT_SKILL_MESSAGE = "Ok.";
+// This is the message a user will hear when they try to cancel or stop the skill.
+var EXIT_SKILL_MESSAGE = "Ok. ";
 
 // =====================================================================================================
 // ------------------------------ Section 2. Skill Code - Intent Handlers  -----------------------------
@@ -37,7 +35,7 @@ var EXIT_SKILL_MESSAGE = "Ok.";
 
 var states = {
 	SEARCHMODE: "_SEARCHMODE",
-	DESCRIPTION: "_DESCRIPTION",
+	DESCRIPTION: "_DESCRIPTION"
 };
 
 const newSessionHandlers = {
@@ -48,6 +46,12 @@ const newSessionHandlers = {
 	"SearchIntent": function() {
 		this.handler.state = states.SEARCHMODE;
 		this.emitWithState("SearchIntent");
+	},
+	"SelectIntent": function() {
+		this.emit(":ask", "You must search for articles first before selecting one. " + getSearchHelpMessage());
+	},
+	"TellMeThisIntent": function() {
+		this.emit(":ask", "Please search for and select an article first. " + getSearchHelpMessage());
 	},
 	"AMAZON.YesIntent": function() {
 		this.emit(":ask", getGenericHelpMessage(), getGenericHelpMessage());
@@ -66,7 +70,7 @@ const newSessionHandlers = {
 	},
 	"AMAZON.StartOverIntent": function() {
 		this.handler.state = states.SEARCHMODE;
-		var output = "Ok, starting over." + getGenericHelpMessage();
+		var output = "Ok, starting over. " + getGenericHelpMessage();
 		this.emit(":ask", output, output);
 	},
 	"AMAZON.HelpIntent": function() {
@@ -90,8 +94,8 @@ var startSearchHandlers = Alexa.CreateStateHandler(states.SEARCHMODE, {
 	},
 	"AMAZON.RepeatIntent": function() {
 		var output;
-		if (this.attributes.lastSpeech) {
-			output = this.attributes.lastSpeech;
+		if (this.attributes.repeatSpeech) {
+			output = this.attributes.repeatSpeech;
 		} else {
 			output = getGenericHelpMessage();
 		}
@@ -99,6 +103,12 @@ var startSearchHandlers = Alexa.CreateStateHandler(states.SEARCHMODE, {
 	},
 	"SearchIntent": function() {
 		searchIntentHandler.call(this);
+	},
+	"SelectIntent": function() {
+		this.emit(":ask", "You must search for articles before selecting one. " + getSearchHelpMessage());
+	},
+	"TellMeThisIntent": function() {
+		this.emit(":ask", "Please search for articles first. " + getSearchHelpMessage());
 	},
 	"AMAZON.HelpIntent": function() {
 		this.emit(":ask", getGenericHelpMessage(), getGenericHelpMessage());
@@ -111,7 +121,7 @@ var startSearchHandlers = Alexa.CreateStateHandler(states.SEARCHMODE, {
 	},
 	"AMAZON.StartOverIntent": function() {
 		this.handler.state = states.SEARCHMODE;
-		var output = "Ok, starting over." + getGenericHelpMessage();
+		var output = "Ok, starting over. ";
 		this.emit(":ask", output, output);
 	},
 	"SessionEndedRequest": function() {
@@ -125,6 +135,20 @@ var startSearchHandlers = Alexa.CreateStateHandler(states.SEARCHMODE, {
 var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 	"SearchIntent": function() {
 		searchIntentHandler.call(this);
+	},
+	"SelectIntent": function() {
+		if (this.attributes.publicationsArray) {
+			selectIntentHandler.call(this);
+		} else {
+			this.emit(":ask", "Please search for articles before selecting one. " + getSearchHelpMessage());
+		}
+	},
+	"TellMeThisIntent": function() {
+		if (this.attributes.articleNumber) {
+			tellMeThisIntentHander.call(this);
+		} else {
+			this.emit(":ask", "Please select an article first. " + getSelectHelpMessage());
+		}
 	},
 	"AMAZON.HelpIntent": function() {
 		// var person = this.attributes.lastSearch.results[0];
@@ -144,11 +168,11 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 		tellMeMoreIntentHandler.call(this);
 	},
 	"AMAZON.RepeatIntent": function() {
-		this.emit(":ask",this.attributes.lastSpeech, this.attributes.lastSpeech);
+		this.emit(":ask",this.attributes.repeatSpeech, this.attributes.repeatSpeech);
 	},
 	"AMAZON.StartOverIntent": function() {
 		this.handler.state = states.SEARCHMODE;
-		var output = "Ok, starting over." + getGenericHelpMessage();
+		var output = "Ok, starting over. " ;
 		this.emit(":ask", output, output);
 	},
 	"SessionEndedRequest": function() {
@@ -258,9 +282,9 @@ function searchIntentHandler() {
 
 					speech += "Which article would you like to learn more about? "
 					// Store last speech so it can be repeated if necessary
-					alexa.attributes.lastSpeech = speech;
+					alexa.attributes.repeatSpeech = speech;
 
-					alexa.emit(":ask", speech.replace(/\\/g, "").replace(/\"/g,""));
+					alexa.emit(":ask", speech);
 				}
 			}
 		});
@@ -270,7 +294,6 @@ function searchIntentHandler() {
 function getArticle(articleNumber, callback) {
 	// Retrieve article using PubMed ID
 	var abstractURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=" + articleNumber;
-
 	https.get(abstractURL, function (res) {
 		res.setEncoding("utf8");
 		let body = "";
@@ -320,7 +343,6 @@ function extractDetails(result, article, callback) {
 	// Retrieve volume if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]) {
 		volume = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]).replace(/[\\\"\[\]]/g, "");
-console.log("TYPE OF VOLUME: " + typeof volume);
 	} else {
 		volume = NA;
 	}
@@ -335,7 +357,6 @@ console.log("TYPE OF VOLUME: " + typeof volume);
 	// Retrieve ISSN number if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]){
 		issn = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]).replace(/[\\\"\[\]]/g, "");
-console.log("TYPE OF ISSN NUMBER: " + typeof issn);
 	} else {
 		issn = NA;
 	}
@@ -411,8 +432,183 @@ console.log("TYPE OF ISSN NUMBER: " + typeof issn);
 	callback();
 }
 
-function tellMeMoreIntentHandler() {
-	this.emit(":ask", "tellMeMoreIntentHandler called");
+function selectIntentHandler() {
+	var str = "";
+	var articleNumber = this.event.request.intent.slots.AMAZON_NUMBER.value;
+	this.attributes.articleNumber = articleNumber;
+
+	if (this.attributes.publicationsArray[articleNumber - 1][0] !== NA) {
+		str += "What would you like to know about article " + articleNumber + " - " + this.attributes.publicationsArray[articleNumber - 1][0] + "? ";
+	} else {
+		str += "What would you like to know about article " + articleNumber + "? ";
+	}
+	this.emit(":ask", str);
+}
+
+function tellMeThisIntentHander() {
+	var infoType = this.event.request.intent.slots.INFO_TYPE.value;
+	var articleNumber = this.attributes.articleNumber;
+	var article = this.attributes.publicationsArray[articleNumber - 1];
+	var str = "";
+
+	switch (infoType.toLowerCase()) {
+		case "title":
+		if (article[0] !== NA && article[1] !== NA) {
+			str += "The title of your requested article is - " + article[0] +
+						 " - and it was published in " + article[1] + ". ";
+		} else if (article[0] !== NA) {
+			str += "The title of your requested article is - " + article[0] + ". Unfortunately, I could not find the name of the journal it was published in. ";
+		} else if (article[1] !== NA) {
+			str += "Your requested article was published in - " + article[1] + ". Unfortunately, I could not find the name of the article's title. "
+		} else {
+			str += "I'm sorry - I couldn't find the name of the title nor the name of the journal it was published in. "
+		}
+			break;
+
+		case "date":
+			if (article[10][0] === NA) {
+				str += "Unfortunately, I couldn't find a publication date for this article. ";
+
+				if (article[11][0] !== NA && article[12][0] !== NA && article[13][0]) {
+					str += "However, I did find dates for when the article was received, revised, and accepted. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
+								 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else if (article[11][0] !== NA && article[12][0] !== NA) {
+					str += "However, I did find dates for when the article was received and revised. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
+								 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				} else if (article[11][0] !== NA && article[13][0] !== NA) {
+					str += "However, I did find dates for when the article was received and accepted. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
+								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else if (article[12][0] !== NA && article[13][0] !== NA) {
+					str += "However, I did find dates for when the article was revised and accepted. ";
+					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
+								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else if (article[11][0] !== NA) {
+					str += "However, I did find a date for when the article was received. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
+				} else if (article[12][0] !== NA) {
+					str += "However, I did find a date for when the article was revised. ";
+					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				} else if (article[13][0] !== NA) {
+					str += "However, I did find a date for when the article was accepted. ";
+					str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else {
+					str += "In addition, I was unable to find a date for when the article was received, revised, or accepted. "
+				}
+
+			} else {
+				str += "The article was published " + returnFullDate(article[10][0], article[10][1], article[10][2]) + ". ";
+
+				if (article[11][0] !== NA && article[12][0] !== NA && article[13][0]) {
+					str += "In addition, I found dates for when the article was received, revised, and accepted. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
+								 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else if (article[11][0] !== NA && article[12][0] !== NA) {
+					str += "In addition, I found dates for when the article was received and revised. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
+								 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				} else if (article[11][0] !== NA && article[13][0] !== NA) {
+					str += "In addition, I found dates for when the article was received and accepted. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
+								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else if (article[12][0] !== NA && article[13][0] !== NA) {
+					str += "In addition, I found dates for when the article was revised and accepted. ";
+					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
+								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else if (article[11][0] !== NA) {
+					str += "In addition, I found a date for when the article was received. ";
+					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
+				} else if (article[12][0] !== NA) {
+					str += "In addition, I found a date for when the article was revised. ";
+					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				} else if (article[13][0] !== NA) {
+					str += "In addition, I found a date for when the article was accepted. ";
+					str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				} else {
+					str += "Unfortunately, I was unable to find a date for when the article was received, revised, or accepted. "
+				}
+			}
+			break;
+
+		case "author":
+			if (article[7].length !== 0) {
+				if (article[7].length == 1) {
+					str += "The author of this article is ";
+				} else {
+					str += "The authors for this article are - ";
+				}
+				for (var i = 0; i < article[7].length; i++) {
+					if (article[7].length === 1) {
+						str += article[7][i] + " " + article[8][i] + ". ";
+					} else if (i === article[7].length - 2) {
+						str += article[7][i] + " " + article[8][i] + ", and ";
+					} else if (i === article[7].length - 1) {
+						str += article[7][i] + " " + article[8][i] + ". ";
+					} else {
+						str += article[7][i] + " " + article[8][i] + ", ";
+					}
+				}
+			} else {
+				str += "Unfortunately, I was unable to find the authors of this article. ";
+			}
+			break;
+
+		case "i. s. s. n.":
+			if (article[4] !== NA) {
+				str += "The I. S. S. N. number for this publication is " + spellOut(article[4]) + ". "
+			}
+
+			if (article[5] !== NA) {
+				str += "The I. S. S. N. type is " + article[5] + ". ";
+			}
+			break;
+
+		case "issue":
+			if ((article[3] !== NA) && (article[1] !== NA)) {
+				str += "This article is issue " + article[3] + " in " + article[1] + ". ";
+			} else if (article[3] !== NA) {
+				str += "This article is issue " + article[3] + ". ";
+			} else {
+				str += "I'm sorry - I was unable to find the issue number of this article. ";
+			}
+			break;
+
+		case "volume":
+			if ((article[2] !== NA) && (article[1] !== NA)) {
+				str += "This article is volume number " + article[2] + " in " + article[1] + ". ";
+			} else if (article[2] !== NA) {
+				str += "This article is volume number " + article[2] + ". ";
+			} else {
+				str += "I'm sorry - I was unable to find the volume number of this article. ";
+			}
+			break;
+
+		case "abstract":
+			if (article[9] !== NA) {
+				str += "Here is the abstract for your article - " + article[9];
+			} else {
+				str += "I'm sorry. There was no abstract available for me to retrieve. ";
+			}
+			break;
+
+		case "pub med i. d.":
+			if (article[6] !== NA) {
+				str += "The Pub Med I. D. for your article is - " + spellOut(article[6]);
+			} else {
+				// Should never reach this case
+				str += "Unfortunately, I was unable to retrieve the Pub Med I. D. for the article. ";
+			}
+			break;
+
+		default:
+			str = "I'm sorry. I couldn't understand what you were asking for. " + getTellMeThisHelpMessage();
+	}
+
+	// Store last speech
+	this.attributes.repeatSpeech = str;
+	this.emit(":ask", str);
 }
 
 // =====================================================================================================
@@ -423,8 +619,33 @@ function getGenericHelpMessage(){
 	return "Here is a generic help message.";
 }
 
-function generateSearchHelpMessage(){
-	return "Here is a generic search help message.";
+function getSearchHelpMessage() {
+	var topics = ["anorexia", "acne cysts", "arthritis", "albumin", "aneurysm", "bacteria", "basal cells", "bladder cancer", "blood glucose",
+								"chronic pancreatitis", "cancer prevention", "Chron's disease", "dandruff", "dental abscesses", "diphtheria", "dietary fat",
+								"eczema", "epilepsy", "embryonic stem cells", "exercise", "facial pain", "folic acid", "first-degree burns", "fiber",
+								"gluten intolerance", "gout symptons", "gram stains", "genetic testing", "glucose", "histamine", "heart failure", "heartburn",
+								"influenza", "intestines", "jaundice", "Kawasaki disease", "knee replacement", "liver cancer", "laser acupuncture", "lactic acid",
+								"mitral valves", "motion sickness", "mucus", "myopia", "neurotransmitters", "nicotine", "ovarian cancer", "osteoporosis", "pandemics",
+								"pneumonia", "plaque", "restless legs syndrome", "rheumatic fever", "rabies", "stem cells", "strokes", "sickle cell disease",
+								"toenail fungus", "tooth decay", "type 1 diabetes", "ultrasound", "vertigo", "vitamins", "warts", "Wilson disease", "yellow fever"];
+	var searchPhrase = ["Give me articles about ", "Look for ", "Find articles about ", "Find ", "Find me articles about ", "Search for "];
+	return "Examples of things you can say to search for articles are - " + searchPhrase[Math.floor(Math.random() * searchPhrase.length)] +
+				 topics[Math.floor(Math.random() * topics.length)] + " - and " + searchPhrase[Math.floor(Math.random() * searchPhrase.length)] +
+			 	 topics[Math.floor(Math.random() * topics.length)];
+}
+
+function getSelectHelpMessage() {
+	var select = ["", "Number ", "Article "];
+	return "To get more information about an article, select an article number. For example, you can say - " +
+				 select[Math.floor(Math.random() * select.length)] + Math.floor(Math.random() * 10) + ". ";
+}
+
+function getTellMeThisHelpMessage() {
+	var whatPhrase = ["Tell me the ", "Give me the ", "What's the ", "What is the "];
+	var infoType = ["title. ", "date. ", "author. ", "i. s. s. n. ", "issue. ", "volume. ", "abstract. "];
+	return "Examples of things you can ask about an article include - " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
+				 infoType[Math.floor(Math.random() * infoType.length)] + " - or " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
+			 	 infoType[Math.floor(Math.random() * infoType.length)] + ". ";
 }
 
 exports.handler = function(event, context, callback) {
@@ -437,29 +658,68 @@ exports.handler = function(event, context, callback) {
 // =====================================================================================================
 // ------------------------------------ Section 4. Helper Functions  -----------------------------------
 // =====================================================================================================
-function loopThroughArrayOfObjects(arrayOfStrings) {
-	var joinedResult = "";
-	// Looping through the each object in the array
-	for (var i = 0; i < arrayOfStrings.length; i++) {
-		//concatenating names (firstName + lastName ) for each item
-		joinedResult = joinedResult + ", " + arrayOfStrings[i].firstName + " " + arrayOfStrings[i].lastName;
-	}
-	return joinedResult;
-}
-
-function sanitizeSearchQuery(searchQuery){
-	searchQuery = searchQuery.replace(/’s/g, "").toLowerCase();
-	searchQuery = searchQuery.replace(/'s/g, "").toLowerCase();
-	return searchQuery;
-}
-
 function spellOut(toSpell) {
-	var arr = toSpell.split("");
 	var str = "";
+	var arr;
+
+	if (typeof toSpell !== "string") {
+		toSpell = toSpell.toString();
+	}
+
+	arr = toSpell.split("");
 
 	for (var i = 0; i < arr.length; i++) {
 		str += arr[i] + " ";
 	}
 
 	return str;
+}
+
+function returnFullDate(year, month, day) {
+	switch (parseInt(month)) {
+		case 1:
+			month = "January";
+			break;
+		case 2:
+			month = "February";
+			break;
+		case 3:
+			month = "March";
+			break;
+		case 4:
+			month = "April";
+			break;
+		case 5:
+			month = "May";
+			break;
+		case 6:
+			month = "June";
+			break;
+		case 7:
+			month = "July";
+			break;
+		case 8:
+			month = "August";
+			break;
+		case 9:
+			month = "September";
+			break;
+		case 10:
+			month = "October";
+			break;
+		case 11:
+			month = "November";
+			break;
+		case 12:
+			month = "December";
+			break;
+		default:
+			return "in " + year;
+	}
+
+	if (day !== NA) {
+		return "on " + month + " " + day + "th, " + year;
+	} else {
+		return "in " + month + " " + year;
+	}
 }
