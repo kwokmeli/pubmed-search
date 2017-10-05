@@ -151,8 +151,7 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 		}
 	},
 	"AMAZON.HelpIntent": function() {
-		// var person = this.attributes.lastSearch.results[0];
-		this.emit(":ask", "generate next prompt message");
+		this.emit(":ask", getGenericHelpMessage());
 	},
 	"AMAZON.StopIntent": function() {
 		this.emit(":tell", EXIT_SKILL_MESSAGE);
@@ -163,10 +162,9 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 	"AMAZON.NoIntent": function() {
 		this.emit(":tell", SHUTDOWN_MESSAGE);
 	},
-	"AMAZON.YesIntent": function() {
-		// this.emit("TellMeMoreIntent");
-		tellMeMoreIntentHandler.call(this);
-	},
+	// "AMAZON.YesIntent": function() {
+	// 	// this.emit("TellMeMoreIntent");
+	// },
 	"AMAZON.RepeatIntent": function() {
 		this.emit(":ask",this.attributes.repeatSpeech, this.attributes.repeatSpeech);
 	},
@@ -179,7 +177,6 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 		this.emit("AMAZON.StopIntent");
 	},
 	"Unhandled": function() {
-		// var person = this.attributes.lastSearch.results[0];
 		this.emit(":ask", "unhandled");
 	}
 });
@@ -202,21 +199,6 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 var publicationsArray = [];
 
 function searchIntentHandler() {
-	// Reset publicationsArray each time a new search is called
-	publicationsArray.splice(0, publicationsArray.length);
-
-// // IMPORTANT STUFF
-// var searchQuery = this.event.request.intent.slots[canSearch].value;
-// //saving lastSearch results to the current session
-// var lastSearch = this.attributes.lastSearch = "I MADE A SEARCH!!";
-// var output;
-//
-// //saving last intent to session attributes
-// this.attributes.lastSearch.lastIntent = "SearchIntent";
-//
-// this.handler.state = states.MULTIPLE_RESULTS; // change state to MULTIPLE_RESULTS
-// this.attributes.lastSearch.lastSpeech = output;
-
 	var searchTerm = this.event.request.intent.slots.TOPICS.value;
 	var alexa = this;
 	var subject = searchTerm;
@@ -224,6 +206,14 @@ function searchIntentHandler() {
 	var articles = [];
 	var j = 0;
 	var speech = "";
+
+	// Reset publicationsArray each time a new search is called
+	publicationsArray.splice(0, publicationsArray.length);
+
+	// Reset selected article number
+	if (this.attributes.articleNumber) {
+		delete this.attributes.articleNumber;
+	}
 
 	searchTerm = encodeURIComponent(searchTerm).replace(/'/g,"%27").replace(/"/g,"%22");
 	searchURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=" + retMax + "&term=" + searchTerm;
@@ -237,9 +227,9 @@ function searchIntentHandler() {
 
 	  res.on("end", function () {
 	    body = JSON.parse(body);
-      for (var i = 0; i < body.esearchresult.idlist.length; i++) {
+			for (var i = 0; i < body.esearchresult.idlist.length; i++) {
 	      articles.push(body.esearchresult.idlist[i]);
-     	}
+			}
 
 			if (articles.length === 0) {
 				// No articles were found
@@ -411,8 +401,18 @@ function extractDetails(result, article, callback) {
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"]) {
 		for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"].length; i++) {
 			var aff = [];
-			authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]).replace(/[\\\"\[\]]/g, ""));
-			authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]).replace(/[\\\"\[\]]/g, ""));
+
+			if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]) {
+				authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]).replace(/[\\\"\[\]]/g, ""));
+			} else {
+				authorsFirst.push(NA);
+			}
+
+			if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]) {
+				authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]).replace(/[\\\"\[\]]/g, ""));
+			} else {
+				authorsLast.push(NA);
+			}
 
 			// Affiliations include extraneous information
 			// for (var j = 0; j < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["AffiliationInfo"].length; j++) {
@@ -446,13 +446,12 @@ function selectIntentHandler() {
 }
 
 function tellMeThisIntentHander() {
-	var infoType = this.event.request.intent.slots.INFO_TYPE.value;
+	var infoType = this.event.request.intent.slots.INFO_TYPE.value.toLowerCase();
 	var articleNumber = this.attributes.articleNumber;
 	var article = this.attributes.publicationsArray[articleNumber - 1];
 	var str = "";
 
-	switch (infoType.toLowerCase()) {
-		case "title":
+	if (infoType === "title") {
 		if (article[0] !== NA && article[1] !== NA) {
 			str += "The title of your requested article is - " + article[0] +
 						 " - and it was published in " + article[1] + ". ";
@@ -463,147 +462,140 @@ function tellMeThisIntentHander() {
 		} else {
 			str += "I'm sorry - I couldn't find the name of the title nor the name of the journal it was published in. "
 		}
-			break;
 
-		case "date":
-			if (article[10][0] === NA) {
-				str += "Unfortunately, I couldn't find a publication date for this article. ";
+	} else if ((infoType === "date") || (infoType === "dates")) {
+		// TODO: Handle cases where only partial dates are provided (e.g. month and year are provided but not day)
+		if (article[10].length === 0) {
+			str += "Unfortunately, I couldn't find a publication date for this article. ";
 
-				if (article[11][0] !== NA && article[12][0] !== NA && article[13][0]) {
-					str += "However, I did find dates for when the article was received, revised, and accepted. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
-								 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else if (article[11][0] !== NA && article[12][0] !== NA) {
-					str += "However, I did find dates for when the article was received and revised. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
-								 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
-				} else if (article[11][0] !== NA && article[13][0] !== NA) {
-					str += "However, I did find dates for when the article was received and accepted. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
-								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else if (article[12][0] !== NA && article[13][0] !== NA) {
-					str += "However, I did find dates for when the article was revised and accepted. ";
-					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
-								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else if (article[11][0] !== NA) {
-					str += "However, I did find a date for when the article was received. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
-				} else if (article[12][0] !== NA) {
-					str += "However, I did find a date for when the article was revised. ";
-					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
-				} else if (article[13][0] !== NA) {
-					str += "However, I did find a date for when the article was accepted. ";
-					str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			if ((article[11].length !== 0) && (article[12].length !== 0) && (article[13].length !== 0)) {
+				str += "However, I did find dates for when the article was received, revised, and accepted. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
+							 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else if ((article[11].length !== 0) && (article[12].length !== 0)) {
+				str += "However, I did find dates for when the article was received and revised. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
+							 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+			} else if ((article[11].length !== 0) && (article[13].length !== 0)) {
+				str += "However, I did find dates for when the article was received and accepted. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
+							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else if ((article[12].length !== 0) && (article[13].length !== 0)) {
+				str += "However, I did find dates for when the article was revised and accepted. ";
+				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
+							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else if (article[11].length !== 0) {
+				str += "However, I did find a date for when the article was received. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
+			} else if (article[12].length !== 0) {
+				str += "However, I did find a date for when the article was revised. ";
+				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+			} else if (article[13].length !== 0) {
+				str += "However, I did find a date for when the article was accepted. ";
+				str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else {
+				str += "In addition, I was unable to find a date for when the article was received, revised, or accepted. "
+			}
+
+		} else {
+			str += "The article was published " + returnFullDate(article[10][0], article[10][1], article[10][2]) + ". ";
+
+			if ((article[11].length !== 0) && (article[12].length !== 0) && (article[13].length !== 0)) {
+				str += "In addition, I found dates for when the article was received, revised, and accepted. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
+							 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else if ((article[11].length !== 0) && (article[12].length !== 0)) {
+				str += "In addition, I found dates for when the article was received and revised. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
+							 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+			} else if ((article[11].length !== 0) && (article[13].length !== 0)) {
+				str += "In addition, I found dates for when the article was received and accepted. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
+							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else if ((article[12].length !== 0) && (article[13].length !== 0)) {
+				str += "In addition, I found dates for when the article was revised and accepted. ";
+				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
+							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else if (article[11].length !== 0) {
+				str += "In addition, I found a date for when the article was received. ";
+				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
+			} else if (article[12].length !== 0) {
+				str += "In addition, I found a date for when the article was revised. ";
+				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+			} else if (article[13].length !== 0) {
+				str += "In addition, I found a date for when the article was accepted. ";
+				str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+			} else {
+				str += "Unfortunately, I was unable to find a date for when the article was received, revised, or accepted. "
+			}
+		}
+
+	} else if (infoType === "author" || infoType === "authors") {
+		if (article[7].length !== 0) {
+			if (article[7].length == 1) {
+				str += "The author of this article is ";
+			} else {
+				str += "The authors for this article are - ";
+			}
+			for (var i = 0; i < article[7].length; i++) {
+				if (article[7].length === 1) {
+					str += article[7][i] + " " + article[8][i] + ". ";
+				} else if (i === article[7].length - 2) {
+					str += article[7][i] + " " + article[8][i] + ", and ";
+				} else if (i === article[7].length - 1) {
+					str += article[7][i] + " " + article[8][i] + ". ";
 				} else {
-					str += "In addition, I was unable to find a date for when the article was received, revised, or accepted. "
-				}
-
-			} else {
-				str += "The article was published " + returnFullDate(article[10][0], article[10][1], article[10][2]) + ". ";
-
-				if (article[11][0] !== NA && article[12][0] !== NA && article[13][0]) {
-					str += "In addition, I found dates for when the article was received, revised, and accepted. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
-								 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else if (article[11][0] !== NA && article[12][0] !== NA) {
-					str += "In addition, I found dates for when the article was received and revised. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
-								 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
-				} else if (article[11][0] !== NA && article[13][0] !== NA) {
-					str += "In addition, I found dates for when the article was received and accepted. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
-								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else if (article[12][0] !== NA && article[13][0] !== NA) {
-					str += "In addition, I found dates for when the article was revised and accepted. ";
-					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
-								 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else if (article[11][0] !== NA) {
-					str += "In addition, I found a date for when the article was received. ";
-					str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
-				} else if (article[12][0] !== NA) {
-					str += "In addition, I found a date for when the article was revised. ";
-					str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
-				} else if (article[13][0] !== NA) {
-					str += "In addition, I found a date for when the article was accepted. ";
-					str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
-				} else {
-					str += "Unfortunately, I was unable to find a date for when the article was received, revised, or accepted. "
+					str += article[7][i] + " " + article[8][i] + ", ";
 				}
 			}
-			break;
+		} else {
+			str += "Unfortunately, I was unable to find the authors of this article. ";
+		}
 
-		case "author":
-			if (article[7].length !== 0) {
-				if (article[7].length == 1) {
-					str += "The author of this article is ";
-				} else {
-					str += "The authors for this article are - ";
-				}
-				for (var i = 0; i < article[7].length; i++) {
-					if (article[7].length === 1) {
-						str += article[7][i] + " " + article[8][i] + ". ";
-					} else if (i === article[7].length - 2) {
-						str += article[7][i] + " " + article[8][i] + ", and ";
-					} else if (i === article[7].length - 1) {
-						str += article[7][i] + " " + article[8][i] + ". ";
-					} else {
-						str += article[7][i] + " " + article[8][i] + ", ";
-					}
-				}
-			} else {
-				str += "Unfortunately, I was unable to find the authors of this article. ";
-			}
-			break;
+	} else if (infoType === "issn") {
+		if (article[4] !== NA) {
+			str += "The I S S N number for this publication is " + spellOut(article[4]) + ". "
+		}
 
-		case "i. s. s. n.":
-			if (article[4] !== NA) {
-				str += "The I. S. S. N. number for this publication is " + spellOut(article[4]) + ". "
-			}
+		if (article[5] !== NA) {
+			str += "The I S S N type is " + article[5] + ". ";
+		}
 
-			if (article[5] !== NA) {
-				str += "The I. S. S. N. type is " + article[5] + ". ";
-			}
-			break;
+	} else if (infoType === "issue") {
+		if ((article[3] !== NA) && (article[1] !== NA)) {
+			str += "This article is issue " + article[3] + " in " + article[1] + ". ";
+		} else if (article[3] !== NA) {
+			str += "This article is issue " + article[3] + ". ";
+		} else {
+			str += "I'm sorry - I was unable to find the issue number of this article. ";
+		}
 
-		case "issue":
-			if ((article[3] !== NA) && (article[1] !== NA)) {
-				str += "This article is issue " + article[3] + " in " + article[1] + ". ";
-			} else if (article[3] !== NA) {
-				str += "This article is issue " + article[3] + ". ";
-			} else {
-				str += "I'm sorry - I was unable to find the issue number of this article. ";
-			}
-			break;
+	} else if (infoType === "volume") {
+		if ((article[2] !== NA) && (article[1] !== NA)) {
+			str += "This article is volume number " + article[2] + " in " + article[1] + ". ";
+		} else if (article[2] !== NA) {
+			str += "This article is volume number " + article[2] + ". ";
+		} else {
+			str += "I'm sorry - I was unable to find the volume number of this article. ";
+		}
 
-		case "volume":
-			if ((article[2] !== NA) && (article[1] !== NA)) {
-				str += "This article is volume number " + article[2] + " in " + article[1] + ". ";
-			} else if (article[2] !== NA) {
-				str += "This article is volume number " + article[2] + ". ";
-			} else {
-				str += "I'm sorry - I was unable to find the volume number of this article. ";
-			}
-			break;
+	} else if (infoType === "abstract") {
+		if (article[9] !== NA) {
+			str += 'Here is the abstract for your article - <break time="0.5s"/> '  + article[9];
+		} else {
+			str += "I'm sorry. There was no abstract available for me to retrieve. ";
+		}
 
-		case "abstract":
-			if (article[9] !== NA) {
-				str += "Here is the abstract for your article - " + article[9];
-			} else {
-				str += "I'm sorry. There was no abstract available for me to retrieve. ";
-			}
-			break;
+	} else if (infoType === "pub med id" || infoType === "pubmed id") {
+		if (article[6] !== NA) {
+			str += "The Pub Med I D for your article is - " + spellOut(article[6]);
+		} else {
+			// Should never reach this case, but it's here anyways
+			str += "Unfortunately, I was unable to retrieve the Pub Med I D for the article. ";
+		}
 
-		case "pub med i. d.":
-			if (article[6] !== NA) {
-				str += "The Pub Med I. D. for your article is - " + spellOut(article[6]);
-			} else {
-				// Should never reach this case
-				str += "Unfortunately, I was unable to retrieve the Pub Med I. D. for the article. ";
-			}
-			break;
-
-		default:
-			str = "I'm sorry. I couldn't understand what you were asking for. " + getTellMeThisHelpMessage();
+	} else {
+		str = "I'm sorry. I couldn't understand what you were asking for. " + getTellMeThisHelpMessage();
 	}
 
 	// Store last speech
@@ -615,12 +607,13 @@ function tellMeThisIntentHander() {
 // ------------------------------- Section 3. Generating Speech Messages -------------------------------
 // =====================================================================================================
 
-function getGenericHelpMessage(){
-	return "Here is a generic help message.";
+function getGenericHelpMessage() {
+	return "I can help you find articles on the Pub Med database. Begin by searching for an article. " + getSearchHelpMessage() +
+				 getSelectHelpMessage() + "After selecting an article, you can ask for information about it. " + getTellMeThisHelpMessage();
 }
 
 function getSearchHelpMessage() {
-	var topics = ["anorexia", "acne cysts", "arthritis", "albumin", "aneurysm", "bacteria", "basal cells", "bladder cancer", "blood glucose",
+	var topics = ["anorexia", "acne cysts", "arthritis", "albumin", "aneurysms", "bacteria", "basal cells", "bladder cancer", "blood glucose",
 								"chronic pancreatitis", "cancer prevention", "Chron's disease", "dandruff", "dental abscesses", "diphtheria", "dietary fat",
 								"eczema", "epilepsy", "embryonic stem cells", "exercise", "facial pain", "folic acid", "first-degree burns", "fiber",
 								"gluten intolerance", "gout symptons", "gram stains", "genetic testing", "glucose", "histamine", "heart failure", "heartburn",
@@ -631,18 +624,18 @@ function getSearchHelpMessage() {
 	var searchPhrase = ["Give me articles about ", "Look for ", "Find articles about ", "Find ", "Find me articles about ", "Search for "];
 	return "Examples of things you can say to search for articles are - " + searchPhrase[Math.floor(Math.random() * searchPhrase.length)] +
 				 topics[Math.floor(Math.random() * topics.length)] + " - and " + searchPhrase[Math.floor(Math.random() * searchPhrase.length)] +
-			 	 topics[Math.floor(Math.random() * topics.length)];
+			 	 topics[Math.floor(Math.random() * topics.length)] + ". ";
 }
 
 function getSelectHelpMessage() {
-	var select = ["", "Number ", "Article "];
+	var select = ["Number ", "Article "];
 	return "To get more information about an article, select an article number. For example, you can say - " +
 				 select[Math.floor(Math.random() * select.length)] + Math.floor(Math.random() * 10) + ". ";
 }
 
 function getTellMeThisHelpMessage() {
 	var whatPhrase = ["Tell me the ", "Give me the ", "What's the ", "What is the "];
-	var infoType = ["title. ", "date. ", "author. ", "i. s. s. n. ", "issue. ", "volume. ", "abstract. "];
+	var infoType = ["title. ", "date. ", "author. ", "I S S N. ", "issue. ", "volume. ", "abstract. "];
 	return "Examples of things you can ask about an article include - " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
 				 infoType[Math.floor(Math.random() * infoType.length)] + " - or " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
 			 	 infoType[Math.floor(Math.random() * infoType.length)] + ". ";
@@ -666,13 +659,18 @@ function spellOut(toSpell) {
 		toSpell = toSpell.toString();
 	}
 
-	arr = toSpell.split("");
+	arr = toSpell.replace(/-/g, "").split("");
+	str += '<prosody rate="slow">';
 
 	for (var i = 0; i < arr.length; i++) {
 		str += arr[i] + " ";
+
+		if ((i + 1) % 3 === 0) {
+			str += '<break time="0.2s"/>';
+		}
 	}
 
-	return str;
+	return str + '</prosody>';
 }
 
 function returnFullDate(year, month, day) {
@@ -717,7 +715,7 @@ function returnFullDate(year, month, day) {
 			return "in " + year;
 	}
 
-	if (day !== NA) {
+	if (day !== "") {
 		return "on " + month + " " + day + "th, " + year;
 	} else {
 		return "in " + month + " " + year;
