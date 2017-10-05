@@ -26,7 +26,7 @@
     {
       "name": "AMAZON.StartOverIntent",
       "samples": [
-        "startover",
+        "start over",
         "new search",
         "search again"
       ]
@@ -61,7 +61,6 @@
       "name": "SelectIntent",
       "samples": [
         "article {AMAZON_NUMBER}",
-        "{AMAZON_NUMBER}",
         "number {AMAZON_NUMBER}"
       ],
       "slots": [
@@ -127,7 +126,9 @@
           "id": null,
           "name": {
             "value": "author",
-            "synonyms": []
+            "synonyms": [
+              "authors"
+            ]
           }
         },
         {
@@ -447,61 +448,42 @@
         {
           "id": null,
           "name": {
-            "value": "what is",
+            "value": "what's the",
             "synonyms": []
           }
         },
         {
           "id": null,
           "name": {
-            "value": "what's",
+            "value": "give me the",
             "synonyms": []
           }
         },
         {
           "id": null,
           "name": {
-            "value": "give me",
+            "value": "tell me the",
             "synonyms": []
           }
         },
         {
           "id": null,
           "name": {
-            "value": "tell me",
+            "value": "what is the",
             "synonyms": []
           }
         },
         {
           "id": null,
           "name": {
-            "value": "what",
-            "synonyms": []
-          }
-        }
-      ]
-    },
-    {
-      "name": "WHO_PHRASE",
-      "values": [
-        {
-          "id": null,
-          "name": {
-            "value": "find",
+            "value": "who is the",
             "synonyms": []
           }
         },
         {
           "id": null,
           "name": {
-            "value": "who is",
-            "synonyms": []
-          }
-        },
-        {
-          "id": null,
-          "name": {
-            "value": "who",
+            "value": "what are the",
             "synonyms": []
           }
         }
