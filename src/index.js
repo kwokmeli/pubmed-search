@@ -2,12 +2,18 @@
 const Alexa = require("alexa-sdk");
 const xml2js = require("xml2js");
 const https = require("https");
+const google = require("googleapis");
+const Base64 = require("js-base64").Base64;
+const gapi = require("gapi");
 
 const NA = "N/A";
 const retMax = 10;
 
 // App ID for mkwok
 var APP_ID = "amzn1.ask.skill.6c3b5cbf-71ab-470b-b440-adcc95f0e70d";
+
+var CLIENT_ID = "1008286386485-aot4ak0kmniui967avelk9497mapkjq3.apps.googleusercontent.com";
+var CLIENT_SECRET = "FIstk8ZgQ1w3DlMZi-riSkSF";
 
 var skillName = "Pub Med Search";
 
@@ -52,6 +58,9 @@ const newSessionHandlers = {
 	},
 	"TellMeThisIntent": function() {
 		this.emit(":ask", "Please search for and select an article first. " + getSearchHelpMessage());
+	},
+	"EMailIntent": function() {
+		this.emit(":ask", "You must search for and select an article before sending an article to your e-mail. " + getSearchHelpMessage());
 	},
 	"AMAZON.YesIntent": function() {
 		this.emit(":ask", getGenericHelpMessage(), getGenericHelpMessage());
@@ -110,6 +119,9 @@ var startSearchHandlers = Alexa.CreateStateHandler(states.SEARCHMODE, {
 	"TellMeThisIntent": function() {
 		this.emit(":ask", "Please search for articles first. " + getSearchHelpMessage());
 	},
+	"EMailIntent": function() {
+		this.emit(":ask", "Please search for articles first. " + getSearchHelpMessage());
+	},
 	"AMAZON.HelpIntent": function() {
 		this.emit(":ask", getGenericHelpMessage(), getGenericHelpMessage());
 	},
@@ -148,6 +160,17 @@ var descriptionHandlers = Alexa.CreateStateHandler(states.DESCRIPTION, {
 			tellMeThisIntentHander.call(this);
 		} else {
 			this.emit(":ask", "Please select an article first. " + getSelectHelpMessage());
+		}
+	},
+	"EMailIntent": function() {
+		if (this.attributes.articleNumber) {
+			if (this.event.session.user.accessToken) {
+				EMailIntentHandler.call(this);
+			} else {
+				this.emit(":ask", "You must link your account through the Amazon Alexa app before sending e-mails. " + getEMailHelpMessage());
+			}
+		} else {
+			this.emit(":ask", "Please select an article in order to e-mail it to yourself. " + getSelectHelpMessage());
 		}
 	},
 	"AMAZON.HelpIntent": function() {
@@ -447,8 +470,7 @@ function selectIntentHandler() {
 
 function tellMeThisIntentHander() {
 	var infoType = this.event.request.intent.slots.INFO_TYPE.value.toLowerCase();
-	var articleNumber = this.attributes.articleNumber;
-	var article = this.attributes.publicationsArray[articleNumber - 1];
+	var article = this.attributes.publicationsArray[this.attributes.articleNumber - 1];
 	var str = "";
 
 	if (infoType === "title") {
@@ -603,6 +625,42 @@ function tellMeThisIntentHander() {
 	this.emit(":ask", str);
 }
 
+function EMailIntentHandler() {
+	var article = this.attributes.publicationsArray[this.attributes.articleNumber - 1];
+	var text = "";
+
+// TODO: Figure out gapi
+	gapi.client.setToken()
+
+	text += "Article title: " + article[0] + "\nJournal title: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
+					"\nISSN: " + article[4] + ", ISSN type: " + article[5] + "\nPubMed ID: " + article[6] + "\nAuthors: ";
+
+	for (var i = 0; i < article[7].length; i++) {
+		text += article[7][i] + " " + article[8][i];
+		if (i !== article[7].length - 1) {
+			text += ", ";
+		}
+	}
+
+	text += "\nAbstract: " + article[9] + "\nDate published: " + returnFullDate(article[10][0], article[10][1], article[10][2]) +
+					"\nDate received: " + returnFullDate(article[11][0], article[11][1], article[11][2]) + "\nDate revised: " +
+					returnFullDate(article[12][0], article[12][1], article[12][2]) + "\nDate accepted: " + returnFullDate(article[13][0], article[13][1], article[13][2]);
+
+	var encodedText = Base64.encodeURI(text);
+	var request = gapi.client.gmail.users.messages.send({
+		"userId": "me",
+		"resource": {
+			"raw": encodedText
+		}
+	});
+
+	request.execute();
+
+
+console.log("OAUTH TOKEN: " + this.event.session.user.accessToken);
+	this.emit(":ask", "E-mail intent handler called. ");
+}
+
 // =====================================================================================================
 // ------------------------------- Section 3. Generating Speech Messages -------------------------------
 // =====================================================================================================
@@ -639,6 +697,13 @@ function getTellMeThisHelpMessage() {
 	return "Examples of things you can ask about an article include - " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
 				 infoType[Math.floor(Math.random() * infoType.length)] + " - or " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
 			 	 infoType[Math.floor(Math.random() * infoType.length)] + ". ";
+}
+
+function getEMailHelpMessage() {
+
+
+
+	return "getEMailHelpMessage was called";
 }
 
 exports.handler = function(event, context, callback) {
