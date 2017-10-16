@@ -3,8 +3,7 @@ const Alexa = require("alexa-sdk");
 const xml2js = require("xml2js");
 const https = require("https");
 const google = require("googleapis");
-const Base64 = require("js-base64").Base64;
-const gapi = require("gapi");
+const googleAuth = require("google-auth-library");
 
 const NA = "N/A";
 const retMax = 10;
@@ -14,6 +13,7 @@ var APP_ID = "amzn1.ask.skill.6c3b5cbf-71ab-470b-b440-adcc95f0e70d";
 
 var CLIENT_ID = "1008286386485-aot4ak0kmniui967avelk9497mapkjq3.apps.googleusercontent.com";
 var CLIENT_SECRET = "FIstk8ZgQ1w3DlMZi-riSkSF";
+var SCOPES = ["https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/gmail.metadata"];
 
 var skillName = "Pub Med Search";
 
@@ -627,10 +627,11 @@ function tellMeThisIntentHander() {
 
 function EMailIntentHandler() {
 	var article = this.attributes.publicationsArray[this.attributes.articleNumber - 1];
+	var token = this.event.session.user.accessToken;
 	var text = "";
+	var title = " - PubMed Search"
 
-// TODO: Figure out gapi
-	gapi.client.setToken()
+	text += "Here is the article information you requested.\n\n"
 
 	text += "Article title: " + article[0] + "\nJournal title: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
 					"\nISSN: " + article[4] + ", ISSN type: " + article[5] + "\nPubMed ID: " + article[6] + "\nAuthors: ";
@@ -644,23 +645,47 @@ function EMailIntentHandler() {
 
 	text += "\nAbstract: " + article[9] + "\nDate published: " + returnFullDate(article[10][0], article[10][1], article[10][2]) +
 					"\nDate received: " + returnFullDate(article[11][0], article[11][1], article[11][2]) + "\nDate revised: " +
-					returnFullDate(article[12][0], article[12][1], article[12][2]) + "\nDate accepted: " + returnFullDate(article[13][0], article[13][1], article[13][2]);
+					returnFullDate(article[12][0], article[12][1], article[12][2]) + "\nDate accepted: " + returnFullDate(article[13][0], article[13][1], article[13][2]) + "\n\n";
 
-	var encodedText = Base64.encodeURI(text);
-	var request = gapi.client.gmail.users.messages.send({
-		"userId": "me",
-		"resource": {
-			"raw": encodedText
-		}
-	});
+	text += "Thanks for using PubMed Search!"
 
-	request.execute();
+	authorize(token, text, prepMail);
 
-
-console.log("OAUTH TOKEN: " + this.event.session.user.accessToken);
-	this.emit(":ask", "E-mail intent handler called. ");
+	//this.emit(":ask", "E-mail intent handler called. ");
 }
 
+function authorize(token, text, callback) {
+	var auth = new googleAuth();
+	var oauth2Client = new auth.OAuth2(CLIENT_ID, CLIENT_SECRET, "");
+	oauth2Client.credentials.access_token = token;
+	oauth2Client.credentials.refresh_token = "";
+	oauth2Client.credentials.token_type = "Bearer";
+	oauth2Client.credentials.expiry_date = "";
+	callback(oauth2Client, text, sendMail);
+}
+
+function prepMail(auth, text, callback) {
+	var gmail = google.gmail("v1");
+	gmail.users.getProfile({
+		auth: auth,
+		userId: "me"
+	}, function(err, response) {
+		if (err) {
+			console.log("Error prepping mail. ");
+		} else {
+			callback(auth, buildMail(response.emailAddress, text));
+		}
+	});
+}
+
+function buildMail(address, text) {
+	var body = "To: <" + address + ">\nSubject: TITLE HERE\n\n" + text;
+	return new Buffer(body).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function sendMail(auth, body) {
+
+}
 // =====================================================================================================
 // ------------------------------- Section 3. Generating Speech Messages -------------------------------
 // =====================================================================================================
