@@ -4,6 +4,7 @@ const xml2js = require("xml2js");
 const https = require("https");
 const google = require("googleapis");
 const googleAuth = require("google-auth-library");
+const util = require("util");
 
 const NA = "N/A";
 const retMax = 10;
@@ -338,7 +339,8 @@ function extractDetails(result, article, callback) {
 	var authorsFirst = [];
 	var authorsLast = [];
 	// var authorsAffiliation = [];
-
+console.log(util.inspect(result, false, null));
+	// REVIEW: ["PubmedArticleSet"]["PubmedArticle"] is undefined for search term "disease"
 	// Retrieve journal title if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]) {
 		journalTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]).replace(/[\\\"\[\]]/g, "");
@@ -626,11 +628,12 @@ function tellMeThisIntentHander() {
 }
 
 function EMailIntentHandler() {
+	var alexa = this;
 	var article = this.attributes.publicationsArray[this.attributes.articleNumber - 1];
 	var token = this.event.session.user.accessToken;
 	var text = "";
-	var title = " - PubMed Search"
-
+	var title = article[0] + " - PubMed Search"
+console.log("TOKEN: " + token);
 	text += "Here is the article information you requested.\n\n"
 
 	text += "Article title: " + article[0] + "\nJournal title: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
@@ -649,42 +652,62 @@ function EMailIntentHandler() {
 
 	text += "Thanks for using PubMed Search!"
 
-	authorize(token, text, prepMail);
+	authorize(alexa, token, text, title, prepMail);
 
 	//this.emit(":ask", "E-mail intent handler called. ");
 }
 
-function authorize(token, text, callback) {
+function authorize(alexa, token, text, title, callback) {
 	var auth = new googleAuth();
 	var oauth2Client = new auth.OAuth2(CLIENT_ID, CLIENT_SECRET, "");
 	oauth2Client.credentials.access_token = token;
 	oauth2Client.credentials.refresh_token = "";
 	oauth2Client.credentials.token_type = "Bearer";
 	oauth2Client.credentials.expiry_date = "";
-	callback(oauth2Client, text, sendMail);
+	callback(alexa, oauth2Client, text, title, sendMail);
 }
 
-function prepMail(auth, text, callback) {
+function prepMail(alexa, auth, text, title, callback) {
 	var gmail = google.gmail("v1");
 	gmail.users.getProfile({
 		auth: auth,
 		userId: "me"
 	}, function(err, response) {
 		if (err) {
+			alexa.emit(":ask", "There was an error when trying to create your e-mail. Please try again.");
 			console.log("Error prepping mail. ");
+			console.log(util.inspect(err, false, null));
 		} else {
-			callback(auth, buildMail(response.emailAddress, text));
+			console.log(util.inspect(response, false, null));
+			callback(alexa, auth, buildMail(response.emailAddress, text, title));
 		}
 	});
 }
 
-function buildMail(address, text) {
-	var body = "To: <" + address + ">\nSubject: TITLE HERE\n\n" + text;
+function buildMail(address, text, title) {
+	var body = "To: <" + address + ">\nSubject: " + title + "\n\n" + text;
 	return new Buffer(body).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-function sendMail(auth, body) {
-
+function sendMail(alexa, auth, body) {
+	var gmail = google.gmail("v1");
+	gmail.users.messages.send({
+		auth: auth,
+		userId: "me",
+		resource: {
+			raw: body
+		}
+	}, function(err, response) {
+		if (err) {
+			alexa.emit(":ask", "There was an error when sending your message. Please try again.");
+			console.log("There was an error in sending your message.");
+			console.log(util.inspect(err, false, null));
+		} else {
+			alexa.emit(":ask", "Your e-mail was successfully sent.");
+			console.log("Message successfully sent.");
+			console.log(util.inspect(response, false, null));
+		}
+	});
 }
 // =====================================================================================================
 // ------------------------------- Section 3. Generating Speech Messages -------------------------------
