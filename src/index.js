@@ -264,6 +264,7 @@ function searchIntentHandler() {
 
 				// Store all articles and their information
 				function storeArticles(callback) {
+console.log("went into storeArticles");
 					getArticle(articles[j], function () {
 						if (j != articles.length - 1) {
 							j++;
@@ -276,6 +277,7 @@ function searchIntentHandler() {
 				}
 
 				function readArticleTitles() {
+console.log("went into readArticleTitles");
 					// Store information of all articles in session attributes
 					alexa.attributes.publicationsArray = publicationsArray;
 					// Change state to DESCRIPTION since articles have been found
@@ -295,6 +297,7 @@ function searchIntentHandler() {
 					}
 
 					speech += "Which article would you like to learn more about? "
+console.log("speech = " + speech);
 					// Store last speech so it can be repeated if necessary
 					alexa.attributes.repeatSpeech = speech;
 
@@ -308,6 +311,7 @@ function searchIntentHandler() {
 function getArticle(articleNumber, callback) {
 	// Retrieve article using PubMed ID
 	var abstractURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=" + articleNumber;
+console.log("abstractURL: " + abstractURL);
 	https.get(abstractURL, function (res) {
 		res.setEncoding("utf8");
 		let body = "";
@@ -327,6 +331,7 @@ function getArticle(articleNumber, callback) {
 }
 
 function extractDetails(result, article, callback) {
+console.log("went into extractDetails");
 	var journalTitle, articleTitle;
 	var volume, issue;
 	var issn, issnType;
@@ -339,8 +344,14 @@ function extractDetails(result, article, callback) {
 	var authorsFirst = [];
 	var authorsLast = [];
 	// var authorsAffiliation = [];
-console.log(util.inspect(result, false, null));
-	// REVIEW: ["PubmedArticleSet"]["PubmedArticle"] is undefined for search term "disease"
+
+	// REVIEW: Create statements to handle [PubmedBookArticle]
+	if (result["PubmedArticleSet"]["PubmedBookArticle"]) {
+		
+	} else {
+
+	}
+
 	// Retrieve journal title if it exists
 	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]) {
 		journalTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]).replace(/[\\\"\[\]]/g, "");
@@ -460,14 +471,18 @@ console.log(util.inspect(result, false, null));
 function selectIntentHandler() {
 	var str = "";
 	var articleNumber = this.event.request.intent.slots.AMAZON_NUMBER.value;
-	this.attributes.articleNumber = articleNumber;
 
-	if (this.attributes.publicationsArray[articleNumber - 1][0] !== NA) {
-		str += "What would you like to know about article " + articleNumber + " - " + this.attributes.publicationsArray[articleNumber - 1][0] + "? ";
+	if ((articleNumber >= 1) && (articleNumber <= retMax)) {
+		this.attributes.articleNumber = articleNumber;
+		if (this.attributes.publicationsArray[articleNumber - 1][0] !== NA) {
+			str += "What would you like to know about article " + articleNumber + " - " + this.attributes.publicationsArray[articleNumber - 1][0] + "? ";
+		} else {
+			str += "What would you like to know about article " + articleNumber + "? ";
+		}
+		this.emit(":ask", str);
 	} else {
-		str += "What would you like to know about article " + articleNumber + "? ";
+		this.emit(":ask", "Articles are numbered 1 through " + retMax + ". Please select a valid article.");
 	}
-	this.emit(":ask", str);
 }
 
 function tellMeThisIntentHander() {
@@ -631,12 +646,19 @@ function EMailIntentHandler() {
 	var alexa = this;
 	var article = this.attributes.publicationsArray[this.attributes.articleNumber - 1];
 	var token = this.event.session.user.accessToken;
+	var refreshToken = this.event.session.user.refreshToken;
 	var text = "";
 	var title = article[0] + " - PubMed Search"
+
+if (this.event.session.user.refreshToken) {
+	var refreshToken = this.event.session.user.refreshToken;
+	console.log("REFRESH TOKEN: " +  refreshToken);
+}
+
 console.log("TOKEN: " + token);
 	text += "Here is the article information you requested.\n\n"
 
-	text += "Article title: " + article[0] + "\nJournal title: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
+	text += "<b>Article title</b>: " + article[0] + "\n<b>Journal title</b>: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
 					"\nISSN: " + article[4] + ", ISSN type: " + article[5] + "\nPubMed ID: " + article[6] + "\nAuthors: ";
 
 	for (var i = 0; i < article[7].length; i++) {
@@ -653,8 +675,6 @@ console.log("TOKEN: " + token);
 	text += "Thanks for using PubMed Search!"
 
 	authorize(alexa, token, text, title, prepMail);
-
-	//this.emit(":ask", "E-mail intent handler called. ");
 }
 
 function authorize(alexa, token, text, title, callback) {
@@ -685,7 +705,7 @@ function prepMail(alexa, auth, text, title, callback) {
 }
 
 function buildMail(address, text, title) {
-	var body = "To: <" + address + ">\nSubject: " + title + "\n\n" + text;
+	var body = "To: <" + address + ">\nSubject: " + title + "\n\nContent-Type: text/html\n\n" + text;
 	return new Buffer(body).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
@@ -741,17 +761,14 @@ function getSelectHelpMessage() {
 
 function getTellMeThisHelpMessage() {
 	var whatPhrase = ["Tell me the ", "Give me the ", "What's the ", "What is the "];
-	var infoType = ["title. ", "date. ", "author. ", "I S S N. ", "issue. ", "volume. ", "abstract. "];
+	var infoType = ["title", "date", "author", "I S S N", "issue", "volume", "abstract"];
 	return "Examples of things you can ask about an article include - " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
 				 infoType[Math.floor(Math.random() * infoType.length)] + " - or " + whatPhrase[Math.floor(Math.random() * whatPhrase.length)] +
 			 	 infoType[Math.floor(Math.random() * infoType.length)] + ". ";
 }
 
 function getEMailHelpMessage() {
-
-
-
-	return "getEMailHelpMessage was called";
+	return "To link your account, you can visit Alexa dot Amazon dot com - or you can use the Alexa companion app. ";
 }
 
 exports.handler = function(event, context, callback) {
@@ -825,12 +842,12 @@ function returnFullDate(year, month, day) {
 			month = "December";
 			break;
 		default:
-			return "in " + year;
+			return "N/A";
 	}
 
 	if (day !== "") {
-		return "on " + month + " " + day + "th, " + year;
+		return month + " " + day + "th, " + year;
 	} else {
-		return "in " + month + " " + year;
+		return month + " " + year;
 	}
 }
