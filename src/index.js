@@ -311,7 +311,6 @@ console.log("speech = " + speech);
 function getArticle(articleNumber, callback) {
 	// Retrieve article using PubMed ID
 	var abstractURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&retmode=xml&rettype=abstract&id=" + articleNumber;
-console.log("abstractURL: " + abstractURL);
 	https.get(abstractURL, function (res) {
 		res.setEncoding("utf8");
 		let body = "";
@@ -322,6 +321,7 @@ console.log("abstractURL: " + abstractURL);
 		res.on("end", function () {
 			var parser = new xml2js.Parser();
 			parser.parseString(body, function(err, result) {
+console.log(util.inspect(result, false, null));
 				extractDetails(result, articleNumber, function () {
 					callback();
 				});
@@ -345,120 +345,187 @@ console.log("went into extractDetails");
 	var authorsLast = [];
 	// var authorsAffiliation = [];
 
-	// REVIEW: Create statements to handle [PubmedBookArticle]
 	if (result["PubmedArticleSet"]["PubmedBookArticle"]) {
-		
-	} else {
-
-	}
-
-	// Retrieve journal title if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]) {
-		journalTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]).replace(/[\\\"\[\]]/g, "");
-	} else {
-		journalTitle = NA;
-	}
-
-	// Retrieve article title if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]) {
-		articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]).replace(/[\\\"\[\]]/g, "");
-	} else {
-		articleTitle = NA;
-	}
-
-	// Retrieve volume if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]) {
-		volume = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]).replace(/[\\\"\[\]]/g, "");
-	} else {
-		volume = NA;
-	}
-
-	// Retrieve issue if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"]) {
-		issue = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"]).replace(/[\\\"\[\]]/g, "");
-	} else {
-		issue = NA;
-	}
-
-	// Retrieve ISSN number if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]){
-		issn = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]).replace(/[\\\"\[\]]/g, "");
-	} else {
-		issn = NA;
-	}
-
-	// Retrieve ISSN type if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"]) {
-		issnType = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"]).replace(/[\\\"\[\]]/g, "");
-	} else {
-		issnType = NA;
-	}
-
-	// All dates are in the form YYYY, MM, DD
-	// Retrieve publication dates if they exist
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"]) {
-		datePublished.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Year"]).replace(/[\\\"\[\]]/g, ""),
-											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Month"]).replace(/[\\\"\[\]]/g, ""),
-											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Day"]).replace(/[\\\"\[\]]/g, ""));
-	}
-
-	// Retrieve dates for when article was received, revised, and accepted, if available
-	for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"].length; i++) {
-		var pubStatus = result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["$"]["PubStatus"].toLowerCase();
-		if (pubStatus === "received") {
-			dateReceived.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
-												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
-												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
-		} else if (pubStatus === "revised") {
-			dateRevised.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
-											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
-											 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
-		} else if (pubStatus === "accepted") {
-			dateAccepted.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
-												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
-												JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
+		volume = issue = issn = issnType = NA;
+		// Retrieve book title if it exists
+		// Check ArticleTitle first, BookTitle second
+		if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["ArticleTitle"]) {
+			articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["ArticleTitle"][0]["_"]).replace(/[\\\"\[\]]/g, "");
+		} else if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["BookTitle"]) {
+			articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["BookTitle"][0]["_"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			articleTitle = NA;
 		}
-	}
 
-	// Retrieve abstract if it exists
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"]) {
-		for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"].length; i++) {
-			if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"]) {
-				abstract += JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"]).replace(/[\\\"\[\]]/g, "") + " ";
-			} else {
-				abstract += JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]).replace(/[\\\"\[\]]/g, "");
-			}
+		// Retrieve book collection title if it exists
+		if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["CollectionTitle"]) {
+			journalTitle = result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["CollectionTitle"][0]["_"];
+		} else {
+			journalTitle = NA;
 		}
-	} else {
-		abstract = NA;
-	}
 
-	// Retrieve all authors if they exist
-	if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"]) {
-		for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"].length; i++) {
-			var aff = [];
-
-			if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]) {
-				authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]).replace(/[\\\"\[\]]/g, ""));
+		// Retrieve publication date if it exists
+		if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["PubDate"]) {
+			let year, month, day;
+			if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["PubDate"][0]["Year"]) {
+				year = result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["PubDate"][0]["Year"][0];
 			} else {
-				authorsFirst.push(NA);
+				year = NA;
 			}
 
-			if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]) {
-				authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]).replace(/[\\\"\[\]]/g, ""));
+			if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["PubDate"][0]["Month"]) {
+				month = result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["PubDate"][0]["Month"][0];
 			} else {
-				authorsLast.push(NA);
+				month = NA;
 			}
 
-			// Affiliations include extraneous information
-			// for (var j = 0; j < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["AffiliationInfo"].length; j++) {
-			// 	aff.push(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["AffiliationInfo"][j]["Affiliation"]);
-			// }
-			// authorsAffiliation.push(aff);
+			// TODO: Figure out how date is shown for book articles
+			day = NA;
+
+			datePublished.push(JSON.stringify(year.replace(/[\\\"\[\]]/g, "")),
+												 JSON.stringify(month.replace(/[\\\"\[\]]/g, "")),
+												 JSON.stringify(day.replace(/[\\\"\[\]]/g, "")));
+		}
+
+		// Retrieve abstract if it exists
+		if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Abstract"][0]["AbstractText"]) {
+			abstract = result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Abstract"][0]["AbstractText"][0];
+		} else {
+			abstract = NA;
+		}
+
+		// Retrieve all authors if they exist
+		if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["AuthorList"][0]["Author"]) {
+			for (var i = 0; i < result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["AuthorList"][0]["Author"].length; i++) {
+
+				if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["AuthorList"][0]["Author"][i]["ForeName"]) {
+					authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["AuthorList"][0]["Author"][i]["ForeName"][0]).replace(/[\\\"\[\]]/g, ""));
+				} else {
+					authorsFirst.push(NA);
+				}
+
+				if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["AuthorList"][0]["Author"][i]["LastName"]) {
+					authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["AuthorList"][0]["Author"][i]["LastName"][0]).replace(/[\\\"\[\]]/g, ""));
+				} else {
+					authorsLast.push(NA);
+				}
+			}
+		} else {
+			authorsFirst.push(NA);
+			authorsLast.push(NA);
+		}
+
+	} else if (result["PubmedArticleSet"]["PubmedArticle"]) {
+		// Retrieve journal title if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]) {
+			journalTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["Title"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			journalTitle = NA;
+		}
+
+		// Retrieve article title if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]) {
+			articleTitle = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleTitle"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			articleTitle = NA;
+		}
+
+		// Retrieve volume if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]) {
+			volume = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Volume"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			volume = NA;
+		}
+
+		// Retrieve issue if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"]) {
+			issue = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["JournalIssue"][0]["Issue"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			issue = NA;
+		}
+
+		// Retrieve ISSN number if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]){
+			issn = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["_"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			issn = NA;
+		}
+
+		// Retrieve ISSN type if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"]) {
+			issnType = JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Journal"][0]["ISSN"][0]["$"]["IssnType"]).replace(/[\\\"\[\]]/g, "");
+		} else {
+			issnType = NA;
+		}
+
+		// All dates are in the form YYYY, MM, DD
+		// Retrieve publication dates if they exist
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"]) {
+			datePublished.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Year"]).replace(/[\\\"\[\]]/g, ""),
+												 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Month"]).replace(/[\\\"\[\]]/g, ""),
+												 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["ArticleDate"][0]["Day"]).replace(/[\\\"\[\]]/g, ""));
+		}
+
+		// Retrieve dates for when article was received, revised, and accepted, if available
+		for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"].length; i++) {
+			var pubStatus = result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["$"]["PubStatus"].toLowerCase();
+			if (pubStatus === "received") {
+				dateReceived.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
+													JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
+													JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
+			} else if (pubStatus === "revised") {
+				dateRevised.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
+												 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
+												 JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
+			} else if (pubStatus === "accepted") {
+				dateAccepted.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Year"]).replace(/[\\\"\[\]]/g, ""),
+													JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Month"]).replace(/[\\\"\[\]]/g, ""),
+													JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["PubmedData"][0]["History"][0]["PubMedPubDate"][i]["Day"]).replace(/[\\\"\[\]]/g, ""));
+			}
+		}
+
+		// Retrieve abstract if it exists
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"]) {
+			for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"].length; i++) {
+				if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"]) {
+					abstract += JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]["_"]).replace(/[\\\"\[\]]/g, "") + " ";
+				} else {
+					abstract += JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["Abstract"][0]["AbstractText"][i]).replace(/[\\\"\[\]]/g, "");
+				}
+			}
+		} else {
+			abstract = NA;
+		}
+
+		// Retrieve all authors if they exist
+		if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"]) {
+			for (var i = 0; i < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"].length; i++) {
+				var aff = [];
+
+				if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]) {
+					authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["ForeName"]).replace(/[\\\"\[\]]/g, ""));
+				} else {
+					authorsFirst.push(NA);
+				}
+
+				if (result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]) {
+					authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["LastName"]).replace(/[\\\"\[\]]/g, ""));
+				} else {
+					authorsLast.push(NA);
+				}
+
+				// Affiliations include extraneous information
+				// for (var j = 0; j < result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["AffiliationInfo"].length; j++) {
+				// 	aff.push(result["PubmedArticleSet"]["PubmedArticle"][0]["MedlineCitation"][0]["Article"][0]["AuthorList"][0]["Author"][i]["AffiliationInfo"][j]["Affiliation"]);
+				// }
+				// authorsAffiliation.push(aff);
+			}
+		} else {
+			authorsFirst.push(NA);
+			authorsLast.push(NA);
 		}
 	} else {
-		authorsFirst.push(NA);
-		authorsLast.push(NA);
+		console.log("New XML format, unable to read Pubmed Article " + article);
 	}
 
 	articleInformation.push(articleTitle, journalTitle, volume, issue, issn, issnType, article, authorsFirst, authorsLast, abstract, datePublished,
@@ -658,7 +725,7 @@ if (this.event.session.user.refreshToken) {
 console.log("TOKEN: " + token);
 	text += "Here is the article information you requested.\n\n"
 
-	text += "<b>Article title</b>: " + article[0] + "\n<b>Journal title</b>: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
+	text += "Article title: " + article[0] + "\nJournal title: " + article[1] + "\nVolume: " + article[2] + ", Issue: " + article[3] +
 					"\nISSN: " + article[4] + ", ISSN type: " + article[5] + "\nPubMed ID: " + article[6] + "\nAuthors: ";
 
 	for (var i = 0; i < article[7].length; i++) {
