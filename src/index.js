@@ -576,61 +576,61 @@ function tellMeThisIntentHander() {
 
 			if ((article[11].length !== 0) && (article[12].length !== 0) && (article[13].length !== 0)) {
 				str += "However, I did find dates for when the article was received, revised, and accepted. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
-							 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + " - revised " +
+							 returnDate(article[12][0], article[12][1], article[12][2], "full") + " - and accepted " + returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else if ((article[11].length !== 0) && (article[12].length !== 0)) {
 				str += "However, I did find dates for when the article was received and revised. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
-							 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + " - and revised " +
+							 returnDate(article[12][0], article[12][1], article[12][2], "full") + ". ";
 			} else if ((article[11].length !== 0) && (article[13].length !== 0)) {
 				str += "However, I did find dates for when the article was received and accepted. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
-							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + " - and accepted " +
+							 returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else if ((article[12].length !== 0) && (article[13].length !== 0)) {
 				str += "However, I did find dates for when the article was revised and accepted. ";
-				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
-							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was revised " + returnDate(article[12][0], article[12][1], article[12][2], "full") + " - and accepted " +
+							 returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else if (article[11].length !== 0) {
 				str += "However, I did find a date for when the article was received. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + ". ";
 			} else if (article[12].length !== 0) {
 				str += "However, I did find a date for when the article was revised. ";
-				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				str += "The article was revised " + returnDate(article[12][0], article[12][1], article[12][2], "full") + ". ";
 			} else if (article[13].length !== 0) {
 				str += "However, I did find a date for when the article was accepted. ";
-				str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was accepted " + returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else {
 				str += "In addition, I was unable to find a date for when the article was received, revised, or accepted. "
 			}
 
 		} else {
-			str += "The article was published " + returnFullDate(article[10][0], article[10][1], article[10][2]) + ". ";
+			str += "The article was published " + returnDate(article[10][0], article[10][1], article[10][2], "full") + ". ";
 
 			if ((article[11].length !== 0) && (article[12].length !== 0) && (article[13].length !== 0)) {
 				str += "In addition, I found dates for when the article was received, revised, and accepted. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - revised " +
-							 returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + " - revised " +
+							 returnDate(article[12][0], article[12][1], article[12][2], "full") + " - and accepted " + returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else if ((article[11].length !== 0) && (article[12].length !== 0)) {
 				str += "In addition, I found dates for when the article was received and revised. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and revised " +
-							 returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + " - and revised " +
+							 returnDate(article[12][0], article[12][1], article[12][2], "full") + ". ";
 			} else if ((article[11].length !== 0) && (article[13].length !== 0)) {
 				str += "In addition, I found dates for when the article was received and accepted. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + " - and accepted " +
-							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + " - and accepted " +
+							 returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else if ((article[12].length !== 0) && (article[13].length !== 0)) {
 				str += "In addition, I found dates for when the article was revised and accepted. ";
-				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + " - and accepted " +
-							 returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was revised " + returnDate(article[12][0], article[12][1], article[12][2], "full") + " - and accepted " +
+							 returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else if (article[11].length !== 0) {
 				str += "In addition, I found a date for when the article was received. ";
-				str += "The article was received " + returnFullDate(article[11][0], article[11][1], article[11][2]) + ". ";
+				str += "The article was received " + returnDate(article[11][0], article[11][1], article[11][2], "full") + ". ";
 			} else if (article[12].length !== 0) {
 				str += "In addition, I found a date for when the article was revised. ";
-				str += "The article was revised " + returnFullDate(article[12][0], article[12][1], article[12][2]) + ". ";
+				str += "The article was revised " + returnDate(article[12][0], article[12][1], article[12][2], "full") + ". ";
 			} else if (article[13].length !== 0) {
 				str += "In addition, I found a date for when the article was accepted. ";
-				str += "The article was accepted " + returnFullDate(article[13][0], article[13][1], article[13][2]) + ". ";
+				str += "The article was accepted " + returnDate(article[13][0], article[13][1], article[13][2], "full") + ". ";
 			} else {
 				str += "Unfortunately, I was unable to find a date for when the article was received, revised, or accepted. "
 			}
@@ -735,9 +735,9 @@ console.log("TOKEN: " + token);
 		}
 	}
 
-	text += "\nAbstract: " + article[9] + "\nDate published: " + returnFullDate(article[10][0], article[10][1], article[10][2]) +
-					"\nDate received: " + returnFullDate(article[11][0], article[11][1], article[11][2]) + "\nDate revised: " +
-					returnFullDate(article[12][0], article[12][1], article[12][2]) + "\nDate accepted: " + returnFullDate(article[13][0], article[13][1], article[13][2]) + "\n\n";
+	text += "\nAbstract: " + article[9] + "\nDate published: " + returnDate(article[10][0], article[10][1], article[10][2], "abbr") +
+					"\nDate received: " + returnDate(article[11][0], article[11][1], article[11][2], "abbr") + "\nDate revised: " +
+					returnDate(article[12][0], article[12][1], article[12][2], "abbr") + "\nDate accepted: " + returnDate(article[13][0], article[13][1], article[13][2], "abbr") + "\n\n";
 
 	text += "Thanks for using PubMed Search!"
 
@@ -761,7 +761,7 @@ function prepMail(alexa, auth, text, title, callback) {
 		userId: "me"
 	}, function(err, response) {
 		if (err) {
-			alexa.emit(":ask", "There was an error when trying to create your e-mail. Please try again.");
+			alexa.emit(":ask", "There was an error when trying to create your e-mail. Please try again later.");
 			console.log("Error prepping mail. ");
 			console.log(util.inspect(err, false, null));
 		} else {
@@ -786,7 +786,7 @@ function sendMail(alexa, auth, body) {
 		}
 	}, function(err, response) {
 		if (err) {
-			alexa.emit(":ask", "There was an error when sending your message. Please try again.");
+			alexa.emit(":ask", "There was an error when sending your message. Please try again later.");
 			console.log("There was an error in sending your message.");
 			console.log(util.inspect(err, false, null));
 		} else {
@@ -870,7 +870,7 @@ function spellOut(toSpell) {
 	return str + '</prosody>';
 }
 
-function returnFullDate(year, month, day) {
+function returnDate(year, month, day, type) {
 	switch (parseInt(month)) {
 		case 1:
 			month = "January";
@@ -912,9 +912,18 @@ function returnFullDate(year, month, day) {
 			return "N/A";
 	}
 
-	if (day !== "") {
-		return month + " " + day + "th, " + year;
+	if (type === "full") {
+		if (day !== "") {
+			return month + " " + day + "th, " + year;
+		} else {
+			return month + " " + year;
+		}
 	} else {
-		return month + " " + year;
+		if (day !== "") {
+			return month + " " + day + ", " + year;
+		} else {
+			return month + " " + year;
+		}
 	}
+
 }
