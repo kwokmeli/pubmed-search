@@ -4,7 +4,7 @@
 With PubMed Search, you can browse the PubMed database for articles. Ask Alexa for information about the article - abstract, publication dates, authors, journal titles, and more! Linking your Google account will allow you to select articles for Alexa to send to your e-mail.
 
 ### Usage
-To ask for search for articles:
+To search for articles:
 - "Search for diabetes.", "Give me articles about kuru.", "Find articles about lung cancer.", "Look for dentistry.", etc. You can search for new articles at any time.
 
 To select an article:
@@ -21,4 +21,5 @@ To e-mail the selected article to yourself:
 
 ### Future Additions
 - Make database searches using [PubMed's Advanced Search Builder](https://www.ncbi.nlm.nih.gov/pubmed/advanced) - add boolean operators (AND, OR, NOT) and fields (Author, Editor, Filter, Grant Number, Publisher, etc.) to your search query.
-- Better e-mail formatting. 
+- Better e-mail formatting.
+- Additional article features to ask about.

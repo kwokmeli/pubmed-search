@@ -187,7 +187,38 @@ function extractDetails(result, article, publicationsArray, callback) {
 					authorsLast.push(constants.NA);
 				}
 			}
+		} else if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"]) {
+			if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][0]["CollectiveName"]) {
+			// Only a collective name is available
+				for (var i = 0; i < result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][0]["CollectiveName"].length; i++) {
+
+					if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][0]["CollectiveName"]) {
+						authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][0]["CollectiveName"][i]).replace(/[\\\"\[\]]/g, ""));
+					} else {
+						authorsFirst.push(constants.NA);
+					}
+
+					authorsLast.push(constants.NA);
+				}
+			} else {
+			// All authors are available
+				for (var i = 0; i < result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"].length; i++) {
+
+					if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][i]["ForeName"]) {
+						authorsFirst.push(JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][i]["ForeName"][0]).replace(/[\\\"\[\]]/g, ""));
+					} else {
+						authorsFirst.push(constants.NA);
+					}
+
+					if (result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][i]["LastName"]) {
+						authorsLast.push(JSON.stringify(result["PubmedArticleSet"]["PubmedBookArticle"][0]["BookDocument"][0]["Book"][0]["AuthorList"][0]["Author"][i]["LastName"][0]).replace(/[\\\"\[\]]/g, ""));
+					} else {
+						authorsLast.push(constants.NA);
+					}
+				}
+			}
 		} else {
+		// No authors are available
 			authorsFirst.push(constants.NA);
 			authorsLast.push(constants.NA);
 		}
